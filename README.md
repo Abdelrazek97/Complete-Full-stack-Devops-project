@@ -84,11 +84,13 @@ Open:
 http://127.0.0.1:5000
 🔹 Run with Gunicorn (Production-like)
 gunicorn -w 4 app:app
+
 🔹 Run with Docker Compose (Recommended)
 docker-compose up --build
-Stop containers:
 
+Stop containers:
 docker-compose down
+
 ☸️ Kubernetes Deployment
 Apply the full stack:
 
