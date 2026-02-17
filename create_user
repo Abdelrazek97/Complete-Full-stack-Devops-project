@@ -1,0 +1,11 @@
+CREATE USER 'user2'@'%' IDENTIFIED BY 'P@ssw0rd';
+CREATE DATABASE acadmic_database;
+GRANT ALL PRIVILEGES ON acadmic_database.* TO 'user2'@'%';
+
+FLUSH PRIVILEGES; 
+
+GRANT ALL PRIVILEGES ON *.* TO 'user1'@'localhost' IDENTIFIED BY 'P@ssw0rd' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+DROP USER IF EXISTS 'user1'@'localhost' , 'user2'@'%';
+
+mysql -u user2 -p acadmic_database < init.sql

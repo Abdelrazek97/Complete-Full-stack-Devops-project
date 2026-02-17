@@ -11,21 +11,27 @@
                 </div>
             {% endif %}
         </div>
-                <h2>المقررات الدراسية</h2>
+                <h2> الملف الاكاديمي </h2>
                 <ul>
-                    <li><a href="{{url_for('view_data')}}">عرض  المقررات</a></li>
-                    <li><a href="{{url_for('activity_data')}}">عرض برامج التطويرالمنهي</a></li>
+                    {% if session.get('role') == 'admin' %}
+                    <li><a href="{{url_for('view_all_users',department='All')}}" >عرض جميع أعضاء هيئة التدريس بالكلية   </a></li>
+                    <li><a href="{{url_for('view_users')}}">عرض  رؤساء أقسام هيئة التدريس بالكلية </a></li>
+                    {% endif %}
+                    {% if session.get('role') == 'head' %}
+                    <li><a href="{{url_for('view_users')}}" >عرض  أعضاء هيئة التدريس بالقسم  </a></li>
+                    <!-- <li><a href="{{url_for('activity_data')}}">عرض برامج التطويرالمنهي</a></li>
                     <li><a href="{{url_for('program_data')}}">عرض البحث العلمي</a></li>
-                    <li><a href="{{url_for('prticipation_data')}}">  عرض المشاركة في الندوات والمؤتمرات </a></li>
+                    <li><a href="{{url_for('prticipation_data')}}">  عرض المشاركة في الندوات والمؤتمرات </a></li> -->
                     <li><a href="{{url_for('view_university_evaluation')}}">عرض خدمة القسم و الكلية و الجامعة</a></li>
                     <li><a href="{{url_for('view_criteria_of_evaluation')}}">عرض جوانب و معايير التقويم و مؤشرات الأداء</a></li>
                     <li><a href="{{url_for('view_Scientific_production')}}"> عرض الإنتاج العلمي و الأنشطة العلمية و المهنية </a></li>
+                    {% endif %}
 
                 </ul>
 
              
                 <div class="sidebar-footer">
-                    <a href="{{ url_for('logout') }}" class="logout-button">Logout</a>
+                    <a href="{{ url_for('logout') }}" class="logout-button" style="text-align: center;"> تسجيل الخروج 🚪 </a>
                 </div>
             </div>
 
@@ -37,4 +43,5 @@
             </div>
         {% endif %}
     </nav>
+    </div>
 </aside>

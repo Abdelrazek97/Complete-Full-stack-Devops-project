@@ -4,8 +4,10 @@
 
 
     <form method="POST" action="{{ url_for('update',id=id) }}">
-         
 
+        <h1 style="text-align: center;" > ⚫  الانتاج العلمي والانشطة العلمية والمهنية   </h1>
+           <h3 style="text-align: center;">   {{Scientific_production.full_name}} 👨‍⚕️  </h3> 
+        
         <div class="table-content" >
         <table text-align=center direction=rtl  class="table-content" >
             <thead >
@@ -24,9 +26,9 @@
 تحقيق الكتب النادرة المحكمة الترجمةالمحكمة للكتب العلمية المتخصصة
 الاختراعات والابتكارات التي صدرت لها براءات من مكاتب براءات الاختراع ويعترف  بها المجلس العلمي.
 -النشاط الإبداعي المتميز وفق القواعد المعتمدة من المجلس العلمي .</td>
-                    <td> 5 </td> 
+                    <td> 10 </td> 
 <td>  {{Scientific_production.Scientific_research}} </td>        
-<td> <input type="number" id="Scientific_research_Evaluation" name="Scientific_research_Evaluation" placeholder=" الحد الاعلي للدرجة 5 " required> </td>
+<td> <input type="number" id="Scientific_research_Evaluation" name="Scientific_research_Evaluation" placeholder=" الحد الاعلي للدرجة 10 " required> </td>
 
                 </tr>
             </tbody>
@@ -51,10 +53,10 @@
 -حضورالمؤتمرات والندوات و ورش العمل ذات العلاقة بالتخصص 
 مجموع درجات تقييم الانتاج البحثي والانشطة العلمية و المهنية العضوية في الهيئات المهنية و البحثية المرتبطة بمجال التخصص .                    </label>
                     .</td>
-                    <td> 5 </td>
+                    <td> 10 </td>
                     <td>  {{Scientific_production.supervision_Graduation}} </td>
                     
-               <td><input type="number" id="supervision_Graduation_Evaluation" name="supervision_Graduation_Evaluation" placeholder=" الحد الاعلي للدرجة 5 " required> </td>
+               <td><input type="number" id="supervision_Graduation_Evaluation" name="supervision_Graduation_Evaluation" placeholder=" الحد الاعلي للدرجة 10 " required> </td>
 
                 </tr>
             </tbody>

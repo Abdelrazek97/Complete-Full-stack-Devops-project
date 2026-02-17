@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+
+
+<div class="table-content" >
+            <h2 style="text-align: center;" > ⚫  خدمة القسم و الكلية و الجامعة و المجتمع   </h2>
+
+        <table style="width: 50%; justify-self: center; border:solid 2px black;">
+            <thead>
+                <tr>
+                    <th> الاسم </th>
+                   
+                 
+                </tr>
+            </thead>
+            <tbody >
+                {% for item in university_evaluation %}
+                <tr>
+                   
+                    <td><a href="{{ url_for('update_university',id=item.user_id ) }}"> {{ item['full_name'] or item['username'] }}</a> </td>
+                   
+                 
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+</div>
+
+
+{% endblock %}

@@ -3,9 +3,12 @@
 {% block content %}
    
     <form method="POST" action="{{ url_for('update_criteria',id=id) }}">
-        
+
         <div class="form-section ">
-            <h1> جوانب و معايير التقويم و مؤشرات الأداء </h1>
+            <h1 style="text-align: center;" > ⚫  جوانب و معايير التقويم و مؤشرات الأداء    </h1>
+           <h3 style="text-align: center;">   {{Evaluation_aspects.full_name}} 👨‍⚕️  </h3> 
+            
+            <h1></h1>
            <div >
             <table   class="table-content" >
             <thead>

@@ -1,0 +1,295 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<form method="GET" action="{{ url_for('view_person',id=id) }}">
+<h2 class="center-text">  {{ user.full_name }}  ➡ {{ user.department }} Department 👨‍⚕️</h2>
+
+<div class="section-head">
+<h3  >  🔰  خدمة القسم و الكلية و الجامعة و المجتمع </h3>
+{% if session.get('user_id') == id and university_evaluation == None  %}
+         <a class="button button-link" href="{{url_for('university_evaluation') }}"> أضغط للتقييم</a>
+{% elif session.get('role') != 'user' and university_evaluation.evaluation_sum == None   %}
+          <a class="button button-link" href="{{url_for('update_university',id=id) }}"> أضغط للتقييم</a>
+       
+         {% endif %}
+        </div>
+<div class="table-content">
+        <table>
+            <thead>
+                <tr>
+                    <th>مجموع درجات التقييم الذاتي </th>
+                    <th>الحد الاعلي للدرجة</th>
+                    <th> تقييم رئيس القسم  </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>                
+                   {% if university_evaluation.aspects_sum  %}
+                   <td>{{ university_evaluation.aspects_sum }}</td>
+                   {% else %}
+                    <td> لم يتم التقييم</td>
+                       {% endif %}
+                    <td>{{ 20 }}</td>
+
+                    {% if university_evaluation.evaluation_sum %}
+                      <td>{{ university_evaluation.evaluation_sum }}</td>
+                   {% else %}
+                   <td> لم يتم التقييم</td>
+                       {% endif %}
+                </tr>
+            </tbody>
+        </table>
+
+<div class="table-content" >
+    
+    <div class="section-head">
+        <h3> 🔰  الانتاج العلمي والانشطة العلمية والمهنية  </h3>
+{% if session.get('user_id') == id  and  Scientific_production == None  %}
+ <a class="button button-link" href="{{url_for('Scientific_production_data')}}"> أضغط للتقييم</a>
+    {% elif session.get('role') != 'user'and Scientific_production.supervision_Graduation == None   %}
+         <a class="button button-link" href="{{url_for('update',id=id)}}"> أضغط للتقييم</a>
+         {% endif %}
+        </div>
+            <table>
+            <thead>
+                <tr>
+                    <th>الانتاج العلمي</th>
+                    <th>النشاط العلمي</th>
+                    <th>الحد الاعلي للدرجة</th>
+                    <th>تقييم رئيس القسم  الانتاج العلمي </th>
+                    <th>تقييم رئيس القسم  النشاط العلمي </th>
+                </tr>
+            </thead>
+            <tbody>
+               
+                <tr>
+                    {% if Scientific_production.Scientific_research  %}
+                    <td>{{ Scientific_production.Scientific_research }}</td>
+                    <td>{{ Scientific_production.supervision_Graduation }}</td>
+                    {% else %}
+                    <td> لم يتم التقييم</td>
+                    <td> لم يتم التقييم</td>
+                    {% endif %}
+                    <td>{{ 20 }}</td>
+                    {% if Scientific_production.Scientific_research_Evaluation  %}
+                    <td>{{ Scientific_production.Scientific_research_Evaluation }}</td>
+                    <td>{{ Scientific_production.supervision_Graduation_Evaluation }}</td>
+                    
+                    {% else %}
+                    <td> لم يتم التقييم</td>
+                    <td> لم يتم التقييم</td>
+                    {% endif %}
+                </tr>
+             
+            </tbody>
+        </table>
+</div>
+
+<div class="table-content" >
+    <div class="section-head">
+        <h3> 🔰  جوانب و معايير التقويم و مؤشرات الأداء    </h3>
+     {% if session.get('user_id') == id and  Evaluation_aspects == None  %}
+         <a class="button button-link" href="{{url_for('cirteria_data')}}"> أضغط للتقييم</a>
+        {% elif session.get('role') != 'user' and  Evaluation_aspects.evaluation_sum == None %}
+         <a class="button button-link" href="{{url_for('update_criteria',id=id)}}"> أضغط للتقييم</a>
+         {% endif %}
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>مجموع درجات التقييم الذاتي </th>
+                    <th>الحد الاعلي للدرجة</th>
+                    <th>تقييم رئيس القسم النشاط العلمي </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+
+                   {% if Evaluation_aspects.aspects_sum  %}
+                   <td>{{Evaluation_aspects.aspects_sum }}</td>
+                   {% else %}
+                    <td> لم يتم التقييم</td>
+                       {% endif %}
+                    <td>{{ 45 }}</td>
+
+                    {% if Evaluation_aspects.evaluation_sum  %}
+                  <td>{{ Evaluation_aspects.evaluation_sum }}</td>
+                   {% else %}
+                     <td> لم يتم التقييم</td>
+                       {% endif %}
+                </tr>
+            </tbody>
+        </table>
+</div>
+</div>
+
+<div class="table-content" >
+            <h3 > 🔰 الدرجة النهائية لتقييم عضو هيئة التدريس   </h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>  التقييم الذاتي </th>
+                    <th> تقييم رئيس القسم </th>
+                    <th> الدرجة الكلية </th>
+                </tr>
+            </thead>
+            <tbody>
+               {% if university_evaluation.aspects_sum and Scientific_production.Scientific_research and Scientific_production.supervision_Graduation and Evaluation_aspects.aspects_sum  %}
+                <tr>
+                    <td>{{  university_evaluation.aspects_sum  + Scientific_production.Scientific_research + Scientific_production.supervision_Graduation + Evaluation_aspects.aspects_sum  }}</td>
+
+                    {% else %}
+                    <td> لم يكتمل التقييم </td>
+                      {% endif %}
+
+                    {% if university_evaluation.evaluation_sum and Scientific_production.Scientific_research_Evaluation and Scientific_production.supervision_Graduation_Evaluation and Evaluation_aspects.evaluation_sum %}
+
+                    <td>{{ university_evaluation.evaluation_sum  + Scientific_production.Scientific_research_Evaluation  + Scientific_production.supervision_Graduation_Evaluation  + Evaluation_aspects.evaluation_sum  }}</td>
+                     {% else %}
+                    <td> لم يكتمل التقييم </td>
+                      {% endif %}
+                    <td>{{  100 }}</td>
+                </tr>
+            </tbody>
+        </table>
+      
+</div>
+ 
+
+<div class="table-content" >
+        <h3 style="text-align: center;" > 🔰  المقررات الدراسية  🔰 </h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>الفصل الدراسي </th>
+                    <th>رقم المقرر </th>
+                    <th>اسم المقرر </th>
+                    <th>عدد الطلاب</th>
+                    <th>إجمالي العبء التدريسي</th>
+                    <th>الساعات المعتمدة</th>
+                </tr>
+            </thead>
+             {% if semseters %}
+            <tbody>
+                 {% for item in semseters %}
+                <tr>
+                    <td>{{ item['semester'] }}</td>
+                    <td>{{ item['course_code'] }}</td>
+                    <td>{{ item['course_name'] }}</td>
+                    <td>{{ item['num_students'] }}</td>
+                    <td>{{ item['teaching_load'] }}</td>
+                    <td>{{ item['credit_hours'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% endif %}
+        </table>
+      
+</div>
+    
+
+        
+
+ 
+
+<div class="table-content" >
+            <h3 style="text-align: center;" > 🔰  برامج التطوير المهني 🔰 </h3>
+
+        <table>
+            <thead>
+                
+                <tr>
+                    
+                    <th> عنوان النشاط </th>
+                    <th> التاريخ </th>
+                    <th> المدة </th>
+                    <th> نوع المشاركة</th>
+                    <th>  المكان</th>
+                   
+                </tr>
+            </thead>
+             {% if activity %}
+            <tbody>
+                {% for item in activity %}
+                <tr>
+                    <td>{{  item['activity_title'] }}</td>
+                    <td>{{  item['activity_date'] }}</td>
+                    <td>{{  item['duration'] }}</td>
+                    <td>{{  item['participation_type'] }}</td>
+                    <td>{{  item['place'] }}</td>
+                </tr>
+                {% endfor %}
+            {% endif %}
+            </tbody>
+        </table>
+         
+      
+</div>
+
+
+<div class="table-content" >
+            <h3 style="text-align: center;" > 🔰  البحث العلمي 🔰 </h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th> عنوان النتاج العلمي </th>
+                    <th> النوع </th>
+                    <th> اسماء المؤلفين </th>
+                    <th> جهة النشر</th>
+                    <th>  اسم الجهة</th>
+                    <th>  التاريخ</th>
+                    <th>  رابط البحث</th>
+                </tr>
+            </thead>
+             {% if Scientific_research %}
+            <tbody>
+                {% for item in Scientific_research %}
+                <tr>
+                    <td>{{  item['scientific_output'] }}</td>
+                    <td>{{  item['research_type'] }}</td>
+                    <td>{{  item['Authors_names'] }}</td>
+                    <td>{{  item['Publisher'] }}</td>
+                    <td>{{  item['Agency'] }}</td>
+                    <td>{{  item['year'] }}</td>
+                    <td> <a href=" {{ item['DOI'] }}" target="_blank"> LINK 🌐</a> </td>
+                </tr>
+                {% endfor %}
+            {% endif %}
+            </tbody>
+          
+        </table>
+         
+      
+</div>
+
+
+<div class="table-content" >
+            <h3 style="text-align: center;" > 🔰  المشاركة في الندوات و المؤتمرات 🔰 </h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>العنوان</th>
+                    <th>نوع المشاركة</th>
+                    <th> الجهة </th>
+                    <th> التاريخ </th>
+                </tr>
+            </thead>
+             {% if participate_conference %}
+            <tbody>
+                {% for item in participate_conference %}
+                <tr>
+                    <td>{{  item['location'] }}</td>
+                    <td>{{  item['type_part'] }}</td>
+                    <td>{{  item['place'] }}</td>
+                    <td>{{  item['year'] }}</td>
+                </tr>
+                {% endfor %}
+            {% endif %}
+            </tbody>
+        </table>
+</div>
+    
+
+</form>        
+{% endblock %}

@@ -3,6 +3,8 @@
     {% if Scientific_production %}
 
 <div class="table-content" >
+            <h2 style="text-align: center;" > ⚫  الانتاج العلمي والانشطة العلمية والمهنية   </h2>
+
         <table>
             <thead>
                 <tr>
@@ -22,7 +24,7 @@
                     <td><a href="{{ url_for('update',id=item.user_id ) }}"> {{ item['full_name'] or item['username'] }}</a> </td>
                     <td>{{ item['Scientific_research'] }}</td>
                     <td>{{ item['supervision_Graduation'] }}</td>
-                    <td>{{ 5 }}</td>
+                    <td>{{ 10 }}</td>
                     {% if item['Scientific_research_Evaluation']  == None %}
                    <td> لم يتم التقييم</td>
                     <td> لم يتم التقييم</td>
@@ -37,7 +39,7 @@
         </table>
 </div>
     {% else %}
-        <h2>لا توجد بيانات مسجلة , {% if session.get('role') == 'admin' %}<a href="{{ url_for('add_data') }}">Add some data</a>{% endif %}</h2>
+        <h2>لا توجد بيانات مسجلة </h2>
 
         {% endif %}
 

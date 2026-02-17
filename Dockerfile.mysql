@@ -1,0 +1,3 @@
+FROM mysql:8.0
+
+COPY queries.sql /docker-entrypoint-initdb.d/01-queries.sql

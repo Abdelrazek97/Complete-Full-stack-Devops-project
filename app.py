@@ -1,84 +1,100 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, abort
-import sqlite3
+import os
+import pymysql
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
+from datetime import date
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'  # Change this in production!
-DATABASE = 'academic.db'
+MYSQL_CONFIG = {
+    'host': os.getenv('MYSQL_HOST'),
+    'port': int(os.getenv('MYSQL_PORT')),
+    'user': os.getenv('MYSQL_USER'),
+    'password': os.getenv('MYSQL_PASSWORD'),
+    'database': os.getenv('MYSQL_DB'),
+    'charset': 'utf8mb4',
+}
+current_year= date.today().year
 
-# Database connection helper
+
+class CompatRow(dict):
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return tuple(self.values())[key]
+        return super().__getitem__(key)
+
+
+def adapt_sql_query(query):
+    adapted = query.replace('==', '=')
+    adapted = adapted.replace('?', '__PARAM__')
+    adapted = adapted.replace('%', '%%')
+    adapted = adapted.replace('__PARAM__', '%s')
+    return adapted
+
+
+def wrap_row(row):
+    if isinstance(row, dict):
+        return CompatRow(row)
+    return row
+
+
+class MySQLCursor:
+    def __init__(self, cursor):
+        self._cursor = cursor
+
+    def execute(self, query, params=None):
+        if params is None:
+            params = ()
+        self._cursor.execute(adapt_sql_query(query), params)
+        return self
+
+    def fetchone(self):
+        return wrap_row(self._cursor.fetchone())
+
+    def fetchall(self):
+        return [wrap_row(row) for row in self._cursor.fetchall()]
+
+    def __getattr__(self, name):
+        return getattr(self._cursor, name)
+
+
+class MySQLConnection:
+    def __init__(self):
+        self._conn = pymysql.connect(
+            **MYSQL_CONFIG,
+            cursorclass=pymysql.cursors.DictCursor,
+            autocommit=False
+        )
+
+    def execute(self, query, params=None):
+        cursor = self.cursor()
+        cursor.execute(query, params)
+        return cursor
+
+    def cursor(self):
+        return MySQLCursor(self._conn.cursor())
+
+    def commit(self):
+        self._conn.commit()
+
+    def close(self):
+        self._conn.close()
+
+
 def get_db_connection():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return MySQLConnection()
 
 # Initialize database
 def init_db():
     conn = get_db_connection()
-    
-    # Create users table
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            role TEXT NOT NULL DEFAULT 'user',
-            full_name TEXT
-        )
-    ''')
-    # create questions tables 
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS questions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            question_text TEXT NOT NULL,
-            topic TEXT NOT NULL,
-            main_slo TEXT NOT NULL,
-            enabling_slos TEXT NOT NULL,
-            complexity_level TEXT NOT NULL,
-            student_level TEXT NOT NULL,
-            options TEXT NOT NULL,
-            correct_answer TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    # Update academic_data table to include user_id
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS academic_data (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            semester TEXT NOT NULL,
-            course_code TEXT NOT NULL,
-            num_students INTEGER,
-            teaching_load TEXT,
-            course_name TEXT,
-            theoretical_hours INTEGER,
-            practical_hours INTEGER,
-            credit_hours INTEGER,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-    ''')
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS activity_data (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            activity_title TEXT,
-            activity_date TEXT,
-            duration TEXT,
-            participation_type TEXT,
-            place TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-    ''')
-    
+
     # Create admin user if not exists
     admin_exists = conn.execute('SELECT 1 FROM users WHERE username = ?', ('admin',)).fetchone()
     if not admin_exists:
         conn.execute(
-            'INSERT INTO users (username, password, role, full_name) VALUES (?, ?, ?, ?)',
-            ('admin', generate_password_hash('admin123'), 'admin', 'Administrator')
+            'INSERT INTO users (username, password, role, full_name,department) VALUES (?, ?, ?, ?, ?)',
+            ('admin', generate_password_hash('admin123'), 'admin', 'Administrator','Medical Education')
         )
     
     conn.commit()
@@ -101,17 +117,23 @@ def admin_required(f):
         if 'user_id' not in session:
             flash('Please log in to access this page.', 'danger')
             return redirect(url_for('login'))
-        if session.get('role') != 'admin':
-            flash('You do not have permission to access this page.', 'danger')
-            return redirect(url_for('index'))
-        return f(*args, **kwargs)
+        role = session.get('role')
+        if (role == 'admin' or role == 'head' )  :
+            return f(*args, **kwargs)
+        return redirect(url_for('index'))
     return decorated_function
+
+
 
 @app.route('/')
 def index():
     if 'user_id' in session:
-        return redirect(url_for('view_data'))
-    return redirect(url_for('login'))
+        if session.get('role') == 'head' or session.get('role') == 'admin':
+            return redirect(url_for('view_users'))
+        else:
+            return redirect(url_for('view_person',id=session.get('user_id')))
+    else:
+        return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -127,8 +149,9 @@ def login():
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['role'] = user['role']
+            session['department'] = user['department']
             flash('Login successful!', 'success')
-            return redirect(url_for('view_data'))
+            return redirect(url_for('index'))
         else:
             flash('Invalid username or password', 'danger')
     
@@ -140,6 +163,7 @@ def register():
         username = request.form['username']
         password = request.form['password']
         full_name = request.form['full_name']
+        department = request.form['department']
         
         if not username or not password:
             flash('Username and password are required', 'danger')
@@ -147,13 +171,13 @@ def register():
             conn = get_db_connection()
             try:
                 conn.execute(
-                    'INSERT INTO users (username, password, full_name) VALUES (?, ?, ?)',
-                    (username, generate_password_hash(password), full_name)
+                    'INSERT INTO users (username, password, full_name, department) VALUES (?, ?, ?, ?)',
+                    (username, generate_password_hash(password), full_name, department)
                 )
                 conn.commit()
                 flash('Registration successful! Please log in.', 'success')
                 return redirect(url_for('login'))
-            except sqlite3.IntegrityError:
+            except pymysql.err.IntegrityError:
                 flash('Username already exists', 'danger')
             finally:
                 conn.close()
@@ -196,7 +220,7 @@ def semester_data():
         conn.close()
 
         flash('Data added successfully!', 'success')
-        return redirect(url_for('view_data'))
+        return redirect(url_for('view_person',id=session['user_id']))
 
     return render_template('add_semester.html')
 
@@ -212,19 +236,21 @@ def Scientific_production_data():
             'Scientific_research': request.form['Scientific_research'],
             'supervision_Graduation': request.form['supervision_Graduation'],
         }
-
-        # Insert into database
-        conn = get_db_connection()
-        conn.execute('''
-            INSERT INTO Scientific_production (
-                user_id, Scientific_research, supervision_Graduation
-            ) VALUES (?, ?, ?)
-        ''', tuple(data.values()))
-        conn.commit()
-        conn.close()
-
-        flash('Data added successfully!', 'success')
-        return redirect(url_for('view_data'))
+        try:
+            # Insert into database
+            conn = get_db_connection()
+            conn.execute('''
+                INSERT INTO Scientific_production (
+                    user_id, Scientific_research, supervision_Graduation
+                ) VALUES (?, ?, ?)
+            ''', tuple(data.values()))
+            conn.commit()
+            flash('Data added successfully!', 'success')
+            return redirect(url_for('view_person',id=session['user_id']))
+        except:
+            return render_template('page-404.html', error_msg=' لقد قمت بالتقييم بالفعل هذا العام ❌')
+        finally:
+            conn.close() 
 
     return render_template('Scientific_production.html')
 
@@ -253,23 +279,136 @@ def cirteria_data():
            ]
 
         data['aspests_sum'] = sum(int(data[field]) for field in numeric_fields)
-
         # Insert into database
-        conn = get_db_connection()
-        conn.execute('''
-            INSERT INTO Evaluation_aspects (
-                user_id, Develop_courses, Prepare_file, Electronic_tests,
-                 Prepare_material_content, Use_learning_effectively,teaching_methods,
-                 Methods_student,preparing_test_questions,Provide_academic_guidance,aspests_sum
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', tuple(data.values()))
-        conn.commit()
-        conn.close()
-
-        flash('Data added successfully!', 'success')
-        return redirect(url_for('view_data'))
+        try:
+            conn = get_db_connection()
+            conn.execute('''
+                INSERT INTO Evaluation_aspects (
+                    user_id, Develop_courses, Prepare_file, Electronic_tests,
+                    Prepare_material_content, Use_learning_effectively,teaching_methods,
+                    Methods_student,preparing_test_questions,Provide_academic_guidance,aspects_sum
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', tuple(data.values()))
+            conn.commit() 
+        except:
+            return render_template('page-404.html', error_msg=' لقد قمت بالتقييم بالفعل هذا العام ❌')        
+        finally:
+            conn.close() 
+        return redirect(url_for('view_person',id=session['user_id']))
 
     return render_template('criteria_of_evaluation.html')
+
+@app.route('/ethical_add', methods=['GET', 'POST'])
+@login_required
+def ethical_data():
+    if request.method == 'POST':
+        # Get form data
+        data = {
+            'user_id': session['user_id'],
+            'professional_values': request.form['professional_values'],
+            'offer_encouragement': request.form['offer_encouragement'],
+            'respect_leaders': request.form['respect_leaders'],
+            'take_responsibility': request.form['take_responsibility'],
+            'decent_appearance': request.form['decent_appearance'],
+            'punctuality': request.form['punctuality'],
+            'office_hours': request.form['office_hours'],
+            
+        }
+        numeric_fields = [
+         'professional_values', 'offer_encouragement', 'respect_leaders', 
+        'take_responsibility', 'decent_appearance',
+        'punctuality', 'office_hours'
+           ]
+
+        data['aspects_sum'] = sum(int(data[field]) for field in numeric_fields)
+        try:
+        # Insert into database
+            conn = get_db_connection()
+            conn.execute('''
+                INSERT INTO ethics_responsibility (
+                    user_id, professional_values, offer_encouragement, respect_leaders, 
+            take_responsibility, decent_appearance,
+            punctuality, office_hours,aspects_sum
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', tuple(data.values()))
+            conn.commit()
+        except:
+            return render_template('page-404.html', error_msg=' لقد قمت بالتقييم بالفعل هذا العام ❌')
+        finally:
+            conn.close()
+
+        return redirect(url_for('view_person',id=session['user_id']))
+
+    return render_template('EthicsResponsibility_add.html')
+
+@app.route('/update/ethical/<int:id>', methods=['GET', 'POST'])
+@login_required
+def update_ethical(id):
+    if session.get('role') == 'head':
+        if request.method == 'POST':
+            # Get form data 
+          
+            professional_values_evaluation= request.form['professional_values_evaluation']
+            offer_encouragement_evaluation= request.form['offer_encouragement_evaluation']
+            respect_leaders_evaluation= request.form['respect_leaders_evaluation']
+            take_responsibility_evaluation= request.form['take_responsibility_evaluation']
+            decent_appearance_evaluation= request.form['decent_appearance_evaluation']
+            punctuality_evaluation= request.form['punctuality_evaluation']
+            office_hours_evaluation= request.form['office_hours_evaluation']
+           
+            evaluation_fields = [
+            'professional_values_evaluation',
+            'offer_encouragement_evaluation',
+            'respect_leaders_evaluation',
+            'take_responsibility_evaluation',
+            'decent_appearance_evaluation',
+            'punctuality_evaluation',
+            'office_hours_evaluation',
+             ]
+
+            # Calculate sum with error handling
+            try:
+                evaluation_sum = sum(int(request.form[field]) for field in evaluation_fields)
+            except ValueError as e:
+                # Handle case where a value can't be converted to int
+                evaluation_sum = 0  # or raise an exception
+                print(f"Error converting form values: {e}")
+
+            # Insert into database
+            conn = get_db_connection()
+            cursor = conn.cursor()
+
+            update_query = ''' UPDATE ethics_responsibility SET professional_values_evaluation == ?,
+            offer_encouragement_evaluation == ?, respect_leaders_evaluation == ? ,
+            take_responsibility_evaluation == ?, decent_appearance_evaluation == ?,
+            punctuality_evaluation == ?, office_hours_evaluation == ?,
+            evaluation_sum == ? 
+            WHERE ethics_responsibility.user_id == ? '''
+
+            cursor.execute(update_query, (professional_values_evaluation,offer_encouragement_evaluation,
+            respect_leaders_evaluation,take_responsibility_evaluation,
+            decent_appearance_evaluation,punctuality_evaluation,
+            office_hours_evaluation,evaluation_sum,id))
+            conn.commit()
+            conn.close()
+            flash('Data added successfully!', 'success')
+            return redirect(url_for('view_person',id=id))
+
+        conn = get_db_connection()
+
+        # Admin can see all data
+        ethics_responsibility = conn.execute('''
+            SELECT ethics_responsibility.*, users.username, users.full_name 
+            FROM ethics_responsibility 
+            JOIN users ON ethics_responsibility.user_id = users.id
+            WHERE ethics_responsibility.user_id = ?
+            
+        ''',(id,)).fetchone()
+        conn.close()
+
+        return render_template('admin/ethic_responsibility_evaluation.html',id=id, ethics_responsibility=ethics_responsibility)
+    else:
+        return render_template('page-404.html', error_msg='Page Not Found')
 
 
 @app.route('/university_evaluation', methods=['GET', 'POST'])
@@ -290,20 +429,22 @@ def university_evaluation():
            ]
 
         data['aspects_sum'] = sum(int(data[field]) for field in numeric_fields)
+        try:
+            # Insert into database
+            conn = get_db_connection()
+            conn.execute('''
+                INSERT INTO university_evaluation (
+                    user_id, department_load, workshop_develop, program_bank,
+                    medical_services,aspects_sum
+                ) VALUES (?, ?, ?, ?, ?, ?)
+            ''', tuple(data.values()))
+            conn.commit()
+        except:
+            return render_template('page-404.html', error_msg=' لقد قمت بالتقييم بالفعل هذا العام ❌')
+        finally:
+            conn.close()
 
-        # Insert into database
-        conn = get_db_connection()
-        conn.execute('''
-            INSERT INTO university_evaluation (
-                user_id, department_load, workshop_develop, program_bank,
-                 medical_services,aspects_sum
-            ) VALUES (?, ?, ?, ?, ?, ?)
-        ''', tuple(data.values()))
-        conn.commit()
-        conn.close()
-
-        flash('Data added successfully!', 'success')
-        return redirect(url_for('view_data'))
+        return redirect(url_for('view_person',id=session['user_id']))
 
     return render_template('university_evaluation.html')
 
@@ -318,8 +459,8 @@ def prticipation_data():
             'user_id': session['user_id'],
             'location': request.form['location'],
             'type_part': request.form['type_part'],
+            'place': request.form['place'],
             'year': request.form['year'],
-            'place': request.form['place']
         }
 
         # Insert into database
@@ -333,7 +474,7 @@ def prticipation_data():
         conn.close()
 
         flash('Data added successfully!', 'success')
-        return redirect(url_for('view_data'))
+        return redirect(url_for('view_person',id=session['user_id']))
 
     return render_template('Participation_in_conferences.html')
 
@@ -360,7 +501,7 @@ def University_Service():
         conn.close()
 
         flash('Data added successfully!', 'success')
-        return redirect(url_for('view_data'))
+        return redirect(url_for('view_person',id=session['user_id']))
 
     return render_template('University_Service.html')
 
@@ -390,7 +531,7 @@ def activity_data():
         conn.close()
 
         flash('Data added successfully!', 'success')
-        return redirect(url_for('view_data'))
+        return redirect(url_for('view_person',id=session['user_id']))
 
     return render_template('add_activity.html')
 
@@ -408,7 +549,8 @@ def program_data():
             'Publisher': request.form['Publisher'],
             'Agency': request.form['Agency'],
             'year': request.form['year'],
-            'research_type': request.form['research_type']
+            'research_type': request.form['research_type'],
+            'DOI': request.form['DOI']
         }
 
         # Insert into database
@@ -416,14 +558,14 @@ def program_data():
         conn.execute('''
             INSERT INTO Scientific_research (
                 user_id, scientific_output, Authors_names, Publisher, Agency,
-                year, research_type
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                year, research_type, DOI
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', tuple(data.values()))
         conn.commit()
         conn.close()
 
         flash('Data added successfully!', 'success')
-        return redirect(url_for('view_data'))
+        return redirect(url_for('view_person',id=session['user_id']))
 
     return render_template('add_program.html')
 
@@ -479,8 +621,9 @@ def view_Scientific_production():
         SELECT Scientific_production.*, users.username, users.full_name 
         FROM Scientific_production 
         JOIN users ON Scientific_production.user_id = users.id
+        WHERE users.department = ?
         ORDER BY Scientific_production.created_at DESC
-    ''').fetchall()
+    ''', (session['department'],)).fetchall()
 
     conn.close()
     return render_template('view_data/view_Scientific_production.html', Scientific_production=Scientific_production)
@@ -493,18 +636,20 @@ def view_criteria_of_evaluation():
     
     # Admin can see all data0
     Evaluation_aspects = conn.execute('''
-        SELECT aspests_sum,evaluation_sum,user_id, users.username, users.full_name 
+        SELECT aspects_sum,evaluation_sum,user_id, users.username, users.full_name 
         FROM Evaluation_aspects 
         JOIN users ON Evaluation_aspects.user_id = users.id
+        WHERE users.department = ?
         ORDER BY Evaluation_aspects.created_at DESC
-    ''').fetchall()
+    ''', (session['department'],)).fetchall()
 
     activity = conn.execute('''
         SELECT activity_data.*, users.username, users.full_name 
         FROM activity_data 
         JOIN users ON activity_data.user_id = users.id
+        WHERE users.department = ?
         ORDER BY activity_data.created_at DESC
-    ''').fetchall()
+    ''' , (session['department'],)).fetchall()
         
     conn.close()
     return render_template('view_data/view_criteria.html', Evaluation_aspects=Evaluation_aspects,activity=activity)
@@ -517,20 +662,157 @@ def view_university_evaluation():
     conn = get_db_connection()
     
     # Admin can see all data0
+    
     university_evaluation = conn.execute('''
-        SELECT aspects_sum,evaluation_sum,user_id, users.username, users.full_name 
+        SELECT aspects_sum,evaluation_sum,evaluation_year,user_id, users.username, users.full_name 
         FROM university_evaluation 
         JOIN users ON university_evaluation.user_id = users.id
+        WHERE users.department = ?
         ORDER BY university_evaluation.created_at DESC
-    ''').fetchall()
+        
+    ''', (session['department'],)).fetchall()
     conn.close()
     return render_template('view_data/view_university.html', university_evaluation=university_evaluation)
 
+@app.route('/view/all_users')
+@login_required
+@admin_required
+def view_all_users():
+    conn = get_db_connection()
+    department = request.args.get('department', 'All')
+    if department == "All":
+        # Admin can see all data0
+        users = conn.execute('''
+            SELECT id, username, department, full_name ,role
+            FROM users 
+            WHERE users.role = 'user' 
+            ORDER BY users.department
+        ''', ).fetchall()
+
+        conn.close()
+        
+        return render_template('view_all_users.html', users=users)
+    else:
+            print(department)  
+            try:
+            # Admin can see all data0
+                users = conn.execute('''
+                    SELECT id, username, department, full_name ,role
+                    FROM users 
+                    WHERE users.department = ? AND users.role = 'user' 
+                    ORDER BY users.id
+                ''', (department,)).fetchall()
+
+                conn.close()
+                
+                return render_template('view_all_users.html', users=users)
+            except:
+                return render_template('page-404.html', error_msg='لا يوجد هذا القسم ')
+
+
+@app.route('/view/users')
+@login_required
+@admin_required
+def view_users():
+    conn = get_db_connection()
+    # Admin can see all data0
+    users = conn.execute('''
+        SELECT id, username, department, full_name ,role
+        FROM users 
+        WHERE users.department = ? AND users.role = 'user' 
+        ORDER BY users.id
+        
+    ''', (session['department'],)).fetchall()
+
+    headusers = conn.execute('''
+        SELECT id, username, department, full_name ,role
+        FROM users 
+        WHERE users.role = 'head' 
+        ORDER BY users.id
+        
+    ''').fetchall()
+    conn.close()
+    print(users)
+    return render_template('view_data/view_users.html', users=users,headusers=headusers)
+
+@app.route('/view/persons13w4z6e7e5a4r76n<int:id>w46das5s4a6', methods=['GET', 'POST'])
+@login_required
+# @admin_required
+def view_person(id):
+    conn = get_db_connection()
+    
+    # Admin can see all data0
+
+    user = conn.execute('''
+        SELECT  department, full_name ,id
+        FROM users 
+        WHERE users.id = ? 
+        
+    ''', (id,)).fetchone()
+
+    university_evaluation = conn.execute('''
+            SELECT university_evaluation.*, users.username, users.full_name 
+            FROM university_evaluation 
+            JOIN users ON university_evaluation.user_id = users.id
+            WHERE university_evaluation.user_id = ?
+            
+        ''',(id,)).fetchone()
+    
+    Evaluation_aspects = conn.execute('''
+            SELECT Evaluation_aspects.*, users.username, users.full_name 
+            FROM Evaluation_aspects 
+            JOIN users ON Evaluation_aspects.user_id = users.id
+            WHERE Evaluation_aspects.user_id = ?
+            
+        ''',(id,)).fetchone()
+    
+    Scientific_production = conn.execute('''
+            SELECT Scientific_production.*, users.username, users.full_name 
+            FROM Scientific_production 
+            JOIN users ON Scientific_production.user_id = users.id
+            WHERE Scientific_production.user_id = ?
+            
+        ''',(id,)).fetchone()
+    
+    semseters = conn.execute('''
+            SELECT academic_data.*, users.username, users.full_name 
+            FROM academic_data 
+            JOIN users ON academic_data.user_id = users.id
+            WHERE academic_data.user_id = ?
+        ''', (id,)).fetchall()
+
+    activity = conn.execute('''
+        SELECT activity_data.*, users.username, users.full_name 
+        FROM activity_data 
+        JOIN users ON activity_data.user_id = users.id
+        WHERE activity_data.user_id = ?
+    ''', (id,)).fetchall()
+
+    Scientific_research = conn.execute('''
+        SELECT Scientific_research.*, users.username, users.full_name 
+        FROM Scientific_research 
+        JOIN users ON Scientific_research.user_id = users.id
+        WHERE Scientific_research.user_id = ?
+    ''', (id,)).fetchall()
+
+   
+
+    participate_conference = conn.execute('''
+        SELECT participate_conference.*, users.username, users.full_name 
+        FROM participate_conference 
+        JOIN users ON participate_conference.user_id = users.id
+        WHERE participate_conference.user_id = ?
+    ''', (id,)).fetchall()
+   
+
+    conn.close()
+    return render_template('view_data/profile.html', id=id,user=user, university_evaluation=university_evaluation,Scientific_production=Scientific_production,Evaluation_aspects=Evaluation_aspects
+                          ,semseters=semseters, activity=activity,current_year=current_year,participate_conference=participate_conference,Scientific_research=Scientific_research )
 
 @app.route('/update/university/<int:id>', methods=['GET', 'POST'])
 @login_required
 def update_university(id):
-    if session.get('role') == 'admin':
+    if session.get('role') == 'admin' or session.get('role') == 'head':
         if request.method == 'POST':
             # Get form data 
             department_load_Evaluation = request.form['department_load_Evaluation']
@@ -553,21 +835,27 @@ def update_university(id):
                 evaluation_sum = 0  # or raise an exception
                 print(f"Error converting form values: {e}")
 
+            check_query = '''SELECT evaluation_sum FROM university_evaluation 
+             WHERE user_id == ? and evaluation_year == ? '''
             # Insert into database
-            conn = sqlite3.connect(DATABASE)
+            conn = get_db_connection()
             cursor = conn.cursor()
+            check = cursor.execute(check_query, (id,current_year)).fetchone()[0]
+            if(check == None):
+                update_query = ''' UPDATE university_evaluation SET department_load_Evaluation == ?,
+                workshop_develop_Evaluation == ?, medical_services_Evaluation == ? ,
+                program_bank_Evaluation == ?, evaluation_sum == ?
+                WHERE university_evaluation.user_id == ? '''
 
-            update_query = ''' UPDATE university_evaluation SET department_load_Evaluation == ?,
-            workshop_develop_Evaluation == ?, medical_services_Evaluation == ? ,
-            program_bank_Evaluation == ?, evaluation_sum == ?
-            WHERE university_evaluation.user_id == ? '''
-
-            cursor.execute(update_query, (department_load_Evaluation,workshop_develop_Evaluation,
-            medical_services_Evaluation,program_bank_Evaluation,evaluation_sum,id))
-            conn.commit()
-            conn.close()
+                cursor.execute(update_query, (department_load_Evaluation,workshop_develop_Evaluation,
+                medical_services_Evaluation,program_bank_Evaluation,evaluation_sum,id))
+                conn.commit()
+                conn.close()
+            else:
+                conn.close()
+                return render_template('page-404.html', error_msg=' لقد قمت بالتقييم بالفعل هذا العام ❌')
             flash('Data added successfully!', 'success')
-            return redirect(url_for('view_data'))
+            return redirect(url_for('view_person',id=id))
 
         conn = get_db_connection()
 
@@ -583,7 +871,7 @@ def update_university(id):
 
         return render_template('admin/update_university.html',id=id, university_evaluation=university_evaluation)
     else:
-        return render_template('page-404.html')
+         return render_template('page-404.html', error_msg='Page Not Found')
 
 
 
@@ -592,81 +880,252 @@ def update_university(id):
 @login_required
 def view_kpis():
     conn = get_db_connection()
+    department = request.args.get('department', 'All')
+    try:
+        if session.get('role') == 'admin' and department=="All" :
+            # Admin can see all data
+            academic_kpi = conn.execute(''' 
+            SELECT COUNT(*)
+            FROM academic_data
+            ''').fetchone()
+            activity_kpi = conn.execute(''' 
+            SELECT COUNT(DISTINCT user_id)
+            FROM  activity_data
+            ''').fetchone()
+            users = conn.execute(''' 
+            SELECT COUNT(*)
+            FROM  users
+            WHERE role != 'admin'
+            ''').fetchone()
+            University_Service = conn.execute(''' 
+            SELECT COUNT(*)
+            FROM  University_Service
+            ''').fetchone()
+            # Admin can see all data
+
+            activity = conn.execute('''
+            SELECT activity_data.*, users.username, users.full_name 
+            FROM activity_data 
+            JOIN users ON activity_data.user_id = users.id
+            ORDER BY activity_data.created_at DESC
+            ''').fetchall()
+            Scientific_research1 = conn.execute('''
+            SELECT COUNT(*)
+            FROM  Scientific_research
+            WHERE research_type LIKE "%بحث%" AND Publisher LIKE "%مؤتمر%" ;
+            ''').fetchone()
+
+            Scientific_research2 = conn.execute('''
+            SELECT COUNT(*)
+            FROM  Scientific_research
+            WHERE research_type LIKE "%بحث%" AND Publisher LIKE "%مجلة%" ;
+            ''').fetchone()
+
+            part_in_conf = conn.execute(''' 
+            SELECT COUNT(DISTINCT user_id )
+            FROM  participate_conference
+            ''').fetchone()
+
+            Evaluation_aspects = conn.execute(''' 
+            SELECT SUM(evaluation_sum)
+            FROM Evaluation_aspects
+            ''').fetchone()
+
+            university_evaluation = conn.execute(''' 
+            SELECT SUM(evaluation_sum)
+            FROM university_evaluation
+            ''').fetchone()
+
+            activity_percent = (activity_kpi[0]/(users[0]))*100
+            research2_percent = (Scientific_research2[0]/(users[0]))*100
+            research1_percent = (Scientific_research1[0]/(users[0]))*100
+            conf_percent = (part_in_conf[0]/(users[0]))*100
+            print(Evaluation_aspects[0])
+            Evaluation_aspects_percent = (Evaluation_aspects[0]/(users[0]))
+            university_evaluation_percent = (university_evaluation[0]/(users[0]))
+
+            return render_template('view_kpis.html', academic_kpi=academic_kpi[0],activity_kpi=activity_kpi[0],
+            activity_percent=int(activity_percent), University_Service=University_Service[0],
+            Scientific_research1=Scientific_research1[0],Scientific_research2=Scientific_research2[0],
+            research1_percent=int(research1_percent),research2_percent=int(research2_percent), conf_percent=int(conf_percent),
+            Evaluation_aspects_percent=int(Evaluation_aspects_percent),university_evaluation_percent=int(university_evaluation_percent), department=department)
     
-    if session.get('role') == 'admin':
-        # Admin can see all data
-        academic_kpi = conn.execute(''' 
-        SELECT COUNT(*)
-        FROM academic_data
-        ''').fetchone()
-        activity_kpi = conn.execute(''' 
-        SELECT COUNT(*)
-        FROM  activity_data
-        ''').fetchone()
-        users = conn.execute(''' 
-        SELECT COUNT(*)
-        FROM  users
-        ''').fetchone()
-        University_Service = conn.execute(''' 
-        SELECT COUNT(*)
-        FROM  University_Service
-        ''').fetchone()
-         # Admin can see all data
+        elif session.get('role') == 'admin' and department != "All":
+                # Admin can see all data
+                academic_kpi = conn.execute(''' 
+                SELECT COUNT(*)
+                FROM academic_data
+                JOIN users ON academic_data.user_id = users.id
+                WHERE users.department = ?
+                ''', (department,)).fetchone()
+                activity_kpi = conn.execute(''' 
+                SELECT COUNT(DISTINCT user_id)
+                FROM  activity_data
+                JOIN users ON activity_data.user_id = users.id
+                WHERE users.department = ?                            
+                ''', (department,)).fetchone()
+                users = conn.execute(''' 
+                SELECT COUNT(*)
+                FROM  users
+                WHERE role != 'admin' AND users.department = ?                            
+                ''',(department,)).fetchone()
+                University_Service = conn.execute(''' 
+                SELECT COUNT(*)
+                FROM  University_Service
+                JOIN users ON University_Service.user_id = users.id
+                WHERE users.department = ?                            
+                ''', (department,)).fetchone()
+                # Admin can see all data
 
-        activity = conn.execute('''
-        SELECT activity_data.*, users.username, users.full_name 
-        FROM activity_data 
-        JOIN users ON activity_data.user_id = users.id
-        ORDER BY activity_data.created_at DESC
-        ''').fetchall()
-        Scientific_research1 = conn.execute('''
-        SELECT COUNT(*)
-        FROM  Scientific_research
-        WHERE research_type LIKE "%بحث%" AND Publisher LIKE "%مؤتمر%" ;
-        ''').fetchone()
+                activity = conn.execute('''
+                SELECT activity_data.*, users.username, users.full_name 
+                FROM activity_data 
+                JOIN users ON activity_data.user_id = users.id
+                WHERE users.department = ?                               
+                ORDER BY activity_data.created_at DESC
+                ''', (department,)).fetchall()
+                Scientific_research1 = conn.execute('''
+                SELECT COUNT(*)
+                FROM  Scientific_research
+                JOIN users ON Scientific_research.user_id = users.id
+                WHERE users.department = ? AND research_type LIKE "%بحث%" AND Publisher LIKE "%مؤتمر%" ;
+                ''', (department,)).fetchone()
 
-        Scientific_research2 = conn.execute('''
-        SELECT COUNT(*)
-        FROM  Scientific_research
-        WHERE research_type LIKE "%بحث%" AND Publisher LIKE "%مجلة%" ;
-        ''').fetchone()
+                Scientific_research2 = conn.execute('''
+                SELECT COUNT(*)
+                FROM  Scientific_research
+                JOIN users ON Scientific_research.user_id = users.id
+                WHERE users.department = ? AND research_type LIKE "%بحث%" AND Publisher LIKE "%مجلة%" ;
+                ''', (department,)).fetchone()
 
-        part_in_conf = conn.execute(''' 
-        SELECT COUNT(DISTINCT user_id )
-        FROM  participate_conference
-        ''').fetchone()
+                part_in_conf = conn.execute(''' 
+                SELECT COUNT(DISTINCT user_id )
+                FROM  participate_conference
+                JOIN users ON participate_conference.user_id = users.id
+                WHERE users.department = ? 
+                ''', (department,)).fetchone()
 
-        Evaluation_aspects = conn.execute(''' 
-        SELECT SUM(evaluation_sum)
-        FROM Evaluation_aspects
-        ''').fetchone()
+                Evaluation_aspects = conn.execute(''' 
+                SELECT SUM(evaluation_sum)
+                FROM Evaluation_aspects
+                JOIN users ON Evaluation_aspects.user_id = users.id
+                WHERE users.department = ? 
+                ''',(department,)).fetchone()
 
-        university_evaluation = conn.execute(''' 
-        SELECT SUM(evaluation_sum)
-        FROM university_evaluation
-        ''').fetchone()
+                university_evaluation = conn.execute(''' 
+                SELECT SUM(evaluation_sum)
+                FROM university_evaluation
+                JOIN users ON university_evaluation.user_id = users.id
+                WHERE users.department = ? 
+                ''',(department,)).fetchone()
 
-        activity_percent = (activity_kpi[0]/(users[0]-1))*100
-        research2_percent = (Scientific_research2[0]/(users[0]-1))*100
-        research1_percent = (Scientific_research1[0]/(users[0]-1))*100
-        conf_percent = (part_in_conf[0]/(users[0]-1))*100
-        Evaluation_aspects_percent = (Evaluation_aspects[0]/(users[0]-1))
-        university_evaluation_percent = (university_evaluation[0]/(users[0]-1))
+                print(activity_kpi[0])
 
-        return render_template('view_kpis.html', academic_kpi=academic_kpi[0],activity_kpi=activity_kpi[0],
-        activity_percent=int(activity_percent), University_Service=University_Service[0],
-        Scientific_research1=Scientific_research1[0],Scientific_research2=Scientific_research2[0],
-        research1_percent=int(research1_percent),research2_percent=int(research2_percent), conf_percent=int(conf_percent),
-        Evaluation_aspects_percent=int(Evaluation_aspects_percent),university_evaluation_percent=int(university_evaluation_percent))
+                activity_percent = (activity_kpi[0]/(users[0]))*100
+                research2_percent = (Scientific_research2[0]/(users[0]))*100
+                research1_percent = (Scientific_research1[0]/(users[0]))*100
+                conf_percent = (part_in_conf[0]/(users[0]))*100
+                Evaluation_aspects_percent = (Evaluation_aspects[0]/(users[0]))
+                university_evaluation_percent = (university_evaluation[0]/(users[0]))
+
+                return render_template('view_kpis.html', academic_kpi=academic_kpi[0],activity_kpi=activity_kpi[0],
+                activity_percent=int(activity_percent), University_Service=University_Service[0],
+                Scientific_research1=Scientific_research1[0],Scientific_research2=Scientific_research2[0],
+                research1_percent=int(research1_percent),research2_percent=int(research2_percent), conf_percent=int(conf_percent),
+                Evaluation_aspects_percent=int(Evaluation_aspects_percent),university_evaluation_percent=int(university_evaluation_percent),department=department)
 
         
-    conn.close()
-    return render_template('view_data.html', semseters=semseters, activity=activity)
+        elif session.get('role') == 'head'  :
+                # Admin can see all data
+                academic_kpi = conn.execute(''' 
+                SELECT COUNT(*)
+                FROM academic_data
+                JOIN users ON academic_data.user_id = users.id
+                WHERE users.department = ?
+                ''', (session['department'],)).fetchone()
+                activity_kpi = conn.execute(''' 
+                SELECT COUNT(DISTINCT user_id)
+                FROM  activity_data
+                JOIN users ON activity_data.user_id = users.id
+                WHERE users.department = ?                            
+                ''', (session['department'],)).fetchone()
+                users = conn.execute(''' 
+                SELECT COUNT(*)
+                FROM  users
+                WHERE role != 'admin' AND users.department = ?                            
+                ''', (session['department'],)).fetchone()
+                University_Service = conn.execute(''' 
+                SELECT COUNT(*)
+                FROM  University_Service
+                JOIN users ON University_Service.user_id = users.id
+                WHERE users.department = ?                            
+                ''', (session['department'],)).fetchone()
+                # Admin can see all data
+
+                activity = conn.execute('''
+                SELECT activity_data.*, users.username, users.full_name 
+                FROM activity_data 
+                JOIN users ON activity_data.user_id = users.id
+                WHERE users.department = ?                               
+                ORDER BY activity_data.created_at DESC
+                ''', (session['department'],)).fetchall()
+                Scientific_research1 = conn.execute('''
+                SELECT COUNT(*)
+                FROM  Scientific_research
+                JOIN users ON Scientific_research.user_id = users.id
+                WHERE users.department = ? AND research_type LIKE "%بحث%" AND Publisher LIKE "%مؤتمر%" ;
+                ''', (session['department'],)).fetchone()
+
+                Scientific_research2 = conn.execute('''
+                SELECT COUNT(*)
+                FROM  Scientific_research
+                JOIN users ON Scientific_research.user_id = users.id
+                WHERE users.department = ? AND research_type LIKE "%بحث%" AND Publisher LIKE "%مجلة%" ;
+                ''', (session['department'],)).fetchone()
+
+                part_in_conf = conn.execute(''' 
+                SELECT COUNT(DISTINCT user_id )
+                FROM  participate_conference
+                JOIN users ON participate_conference.user_id = users.id
+                WHERE users.department = ? 
+                ''', (session['department'],)).fetchone()
+
+                Evaluation_aspects = conn.execute(''' 
+                SELECT SUM(evaluation_sum)
+                FROM Evaluation_aspects
+                JOIN users ON Evaluation_aspects.user_id = users.id
+                WHERE users.department = ? 
+                ''', (session['department'],)).fetchone()
+
+                university_evaluation = conn.execute(''' 
+                SELECT SUM(evaluation_sum)
+                FROM university_evaluation
+                JOIN users ON university_evaluation.user_id = users.id
+                WHERE users.department = ? 
+                ''', (session['department'],)).fetchone()
+
+                activity_percent = (activity_kpi[0]/(users[0]))*100
+                research2_percent = (Scientific_research2[0]/(users[0]))*100
+                research1_percent = (Scientific_research1[0]/(users[0]))*100
+                conf_percent = (part_in_conf[0]/(users[0]))*100
+                print(Evaluation_aspects[0])
+                Evaluation_aspects_percent = (Evaluation_aspects[0]/(users[0]))
+                university_evaluation_percent = (university_evaluation[0]/(users[0]))
+
+                return render_template('view_kpis.html', academic_kpi=academic_kpi[0],activity_kpi=activity_kpi[0],
+                activity_percent=int(activity_percent), University_Service=University_Service[0],
+                Scientific_research1=Scientific_research1[0],Scientific_research2=Scientific_research2[0],
+                research1_percent=int(research1_percent),research2_percent=int(research2_percent), conf_percent=int(conf_percent),
+                Evaluation_aspects_percent=int(Evaluation_aspects_percent),university_evaluation_percent=int(university_evaluation_percent),department=session.get("department"))
+    except:
+        return render_template('view_kpis.html', activity=0)
+    finally:
+        conn.close()
 
 @app.route('/update/<int:id>', methods=['GET', 'POST'])
 @login_required
 def update(id):
-    if session.get('role') == 'admin':
+    if session.get('role') == 'admin' or session.get('role') == 'head':
         if request.method == 'POST':
             # Get form data
             Scientific_research_Evaluation = request.form['Scientific_research_Evaluation']
@@ -675,16 +1134,22 @@ def update(id):
                 'supervision_Graduation_Evaluation' : request.form['supervision_Graduation_Evaluation'],
                 'user_id' : id
             }
+            check_query = '''SELECT supervision_Graduation_Evaluation FROM Scientific_production 
+             WHERE user_id == ? and evaluation_year == ? '''
             # Insert into database
-            conn = sqlite3.connect(DATABASE)
+            conn = get_db_connection()
             cursor = conn.cursor()
-
-            update_query = " UPDATE Scientific_production SET Scientific_research_Evaluation == ?, supervision_Graduation_Evaluation == ? WHERE Scientific_production.user_id == ? "
-            cursor.execute(update_query, (Scientific_research_Evaluation,supervision_Graduation_Evaluation,id))
-            conn.commit()
-            conn.close()
-            flash('Data added successfully!', 'success')
-            return redirect(url_for('view_data'))
+            check = cursor.execute(check_query, (id,current_year)).fetchone()[0]
+            print(check)
+            if (check == None):
+                update_query = " UPDATE Scientific_production SET Scientific_research_Evaluation == ?, supervision_Graduation_Evaluation == ? WHERE Scientific_production.user_id == ? "
+                cursor.execute(update_query, (Scientific_research_Evaluation,supervision_Graduation_Evaluation,id))
+                conn.commit()
+                conn.close()
+            else:
+                conn.close()
+                return render_template('page-404.html', error_msg=' لقد قمت بالتقييم بالفعل هذا العام ❌')
+            return redirect(url_for('view_person',id=id))
 
         conn = get_db_connection()
 
@@ -700,13 +1165,13 @@ def update(id):
 
         return render_template('admin/update.html',id=id, Scientific_production=Scientific_production)
     else:
-        return render_template('page-404.html')
+         return render_template('page-404.html', error_msg='Page Not Found')
 
 
 @app.route('/update/criteria/<int:id>', methods=['GET', 'POST'])
 @login_required
 def update_criteria(id):
-    if session.get('role') == 'admin':
+    if session.get('role') == 'head':
         if request.method == 'POST':
             # Get form data 
             Develop_courses_Evaluation = request.form['Develop_courses_Evaluation']
@@ -739,25 +1204,32 @@ def update_criteria(id):
                 evaluation_sum = 0  # or raise an exception
                 print(f"Error converting form values: {e}")
 
+            check_query = '''SELECT evaluation_sum FROM Evaluation_aspects 
+             WHERE user_id == ? and evaluation_year == ? '''
             # Insert into database
-            conn = sqlite3.connect(DATABASE)
+            conn = get_db_connection()
             cursor = conn.cursor()
+            check = cursor.execute(check_query, (id,current_year)).fetchone()[0]
 
-            update_query = ''' UPDATE Evaluation_aspects SET Develop_courses_Evaluation == ?,
-            Prepare_file_Evaluation == ?, Electronic_tests_Evaluation == ? ,
-            Prepare_material_Evaluation == ?, Use_learning_Evaluation == ?,
-            teaching_methods_Evaluation == ?, Methods_student_Evaluation == ?,
-            preparing_test_Evaluation == ?, Provide_academic_Evaluation == ? , evaluation_sum == ?
-            WHERE Evaluation_aspects.user_id == ? '''
+            if(check == None):
 
-            cursor.execute(update_query, (Develop_courses_Evaluation,Prepare_file_Evaluation,
-            Electronic_tests_Evaluation,Prepare_material_Evaluation,
-            Use_learning_Evaluation,teaching_methods_Evaluation,
-            Methods_student_Evaluation,preparing_test_Evaluation,Provide_academic_Evaluation,evaluation_sum,id))
-            conn.commit()
-            conn.close()
-            flash('Data added successfully!', 'success')
-            return redirect(url_for('view_data'))
+                update_query = ''' UPDATE Evaluation_aspects SET Develop_courses_Evaluation == ?,
+                Prepare_file_Evaluation == ?, Electronic_tests_Evaluation == ? ,
+                Prepare_material_Evaluation == ?, Use_learning_Evaluation == ?,
+                teaching_methods_Evaluation == ?, Methods_student_Evaluation == ?,
+                preparing_test_Evaluation == ?, Provide_academic_Evaluation == ? , evaluation_sum == ?
+                WHERE Evaluation_aspects.user_id == ? '''
+
+                cursor.execute(update_query, (Develop_courses_Evaluation,Prepare_file_Evaluation,
+                Electronic_tests_Evaluation,Prepare_material_Evaluation,
+                Use_learning_Evaluation,teaching_methods_Evaluation,
+                Methods_student_Evaluation,preparing_test_Evaluation,Provide_academic_Evaluation,evaluation_sum,id))
+                conn.commit()
+                conn.close()
+            else:
+                conn.close()
+                return render_template('page-404.html', error_msg=' لقد قمت بالتقييم بالفعل هذا العام ❌')
+            return redirect(url_for('view_person',id=id))
 
         conn = get_db_connection()
 
@@ -773,209 +1245,9 @@ def update_criteria(id):
 
         return render_template('admin/criteria_of_evaluation.html',id=id, Evaluation_aspects=Evaluation_aspects)
     else:
-        return render_template('page-404.html')
-
-
-@app.route('/add_Q', methods=['GET', 'POST'])
-def add_question():
-    if request.method == 'POST':
-        # Get form data
-        topic = request.form['topic'].strip()
-        main_slo = request.form['main_slo'].strip()
-        enabling_slos = request.form['enabling_slos'].strip()
-        complexity = request.form['complexity'].strip()
-        student_level = request.form['student_level'].strip()
-        question_text = request.form['question_text'].strip()
-        options = request.form['options'].strip()
-        correct_answer = request.form['correct_answer'].strip().upper()
-
-        # Validate inputs
-        if not all([topic, main_slo, complexity, student_level, question_text, options, correct_answer]):
-            flash('All fields are required!', 'error')
-            return render_template('add_question.html', form_data=request.form)
-
-        # Process options and validate correct answer
-        options_list = [opt.strip() for opt in options.split('\n') if opt.strip()]
-        if len(options_list) < 2:
-            flash('At least two options are required!', 'error')
-            return render_template('add_question.html', form_data=request.form)
-
-        valid_answers = [opt[0].upper() for opt in options_list if opt]
-        if correct_answer not in valid_answers:
-            flash('Correct answer must match one of the option letters!', 'error')
-            return render_template('add_question.html', form_data=request.form)
-
-        # Save to database
-        try:
-            conn = get_db_connection()
-            conn.execute('''
-                INSERT INTO questions (
-                    question_text, topic, main_slo, enabling_slos, 
-                    complexity_level, student_level, options, correct_answer
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                question_text, topic, main_slo, enabling_slos, 
-                complexity, student_level, options, correct_answer
-            ))
-            conn.commit()
-            conn.close()
-            
-            flash('Question added successfully!', 'success')
-            return redirect(url_for('add_question'))
-            
-        except Exception as e:
-            flash(f'Failed to add question: {str(e)}', 'error')
-    
-    return render_template('add_question.html')
-
-@app.route('/search', methods=['GET', 'POST'])
-def search_questions():
-    if request.method == 'POST':
-        search_term = request.form.get('search_term', '').strip()
-        complexity = request.form.get('complexity', '').strip()
-
-        conn = get_db_connection()
-        
-        query = '''
-            SELECT id, topic, main_slo, complexity_level, substr(question_text, 1, 100) as question_preview
-            FROM questions 
-            WHERE 1=1
-        '''
-        params = []
-        
-        if search_term:
-            query += " AND (question_text LIKE ? OR topic LIKE ? OR main_slo LIKE ?)"
-            params.extend([f"%{search_term}%"] * 3)
-        
-        if complexity:
-            query += " AND complexity_level = ?"
-            params.append(complexity)
-        
-        query += " ORDER BY id DESC"
-        
-        questions = conn.execute(query, params).fetchall()
-        conn.close()
-        
-        return render_template('search.html', questions=questions, search_term=search_term, complexity=complexity)
-    
-    return render_template('search.html')
-
-@app.route('/view_all')
-def view_all():
-    conn = get_db_connection()
-    questions = conn.execute('''
-        SELECT id, topic, main_slo, complexity_level, student_level, 
-               strftime('%Y-%m-%d', created_at) as created_at
-        FROM questions 
-        ORDER BY id DESC
-    ''').fetchall()
-    conn.close()
-    return render_template('view_all.html', questions=questions)
-
-@app.route('/question/<int:question_id>')
-def question_detail(question_id):
-    conn = get_db_connection()
-    question = conn.execute('''
-        SELECT *
-        FROM questions 
-        WHERE id = ?
-    ''', (question_id,)).fetchone()
-    conn.close()
-    
-    if question is None:
-        abort(404)
-    
-    return render_template('question_detail.html', question=question)
-
-@app.route('/edit/<int:question_id>', methods=['GET', 'POST'])
-def edit_question(question_id):
-    conn = get_db_connection()
-    
-    if request.method == 'POST':
-        # Get form data
-        topic = request.form['topic'].strip()
-        main_slo = request.form['main_slo'].strip()
-        enabling_slos = request.form['enabling_slos'].strip()
-        complexity = request.form['complexity'].strip()
-        student_level = request.form['student_level'].strip()
-        question_text = request.form['question_text'].strip()
-        options = request.form['options'].strip()
-        correct_answer = request.form['correct_answer'].strip().upper()
-
-        # Validate inputs
-        if not all([topic, main_slo, complexity, student_level, question_text, options, correct_answer]):
-            flash('All fields are required!', 'error')
-            conn.close()
-            return render_template('edit_question.html', question=request.form)
-
-        # Process options and validate correct answer
-        options_list = [opt.strip() for opt in options.split('\n') if opt.strip()]
-        if len(options_list) < 2:
-            flash('At least two options are required!', 'error')
-            conn.close()
-            return render_template('edit_question.html', question=request.form)
-
-        valid_answers = [opt[0].upper() for opt in options_list if opt]
-        if correct_answer not in valid_answers:
-            flash('Correct answer must match one of the option letters!', 'error')
-            conn.close()
-            return render_template('edit_question.html', question=request.form)
-
-        # Update database
-        try:
-            conn.execute('''
-                UPDATE questions SET
-                    question_text = ?,
-                    topic = ?,
-                    main_slo = ?,
-                    enabling_slos = ?,
-                    complexity_level = ?,
-                    student_level = ?,
-                    options = ?,
-                    correct_answer = ?
-                WHERE id = ?
-            ''', (
-                question_text, topic, main_slo, enabling_slos, 
-                complexity, student_level, options, correct_answer,
-                question_id
-            ))
-            conn.commit()
-            conn.close()
-            
-            flash('Question updated successfully!', 'success')
-            return redirect(url_for('question_detail', question_id=question_id))
-            
-        except Exception as e:
-            flash(f'Failed to update question: {str(e)}', 'error')
-            conn.close()
-    
-    # GET request - load existing question
-    question = conn.execute('''
-        SELECT *
-        FROM questions 
-        WHERE id = ?
-    ''', (question_id,)).fetchone()
-    conn.close()
-    
-    if question is None:
-        abort(404)
-    
-    return render_template('edit_question.html', question=question)
-
-@app.route('/delete/<int:question_id>', methods=['POST'])
-def delete_question(question_id):
-    conn = get_db_connection()
-    conn.execute('DELETE FROM questions WHERE id = ?', (question_id,))
-    conn.commit()
-    conn.close()
-    
-    flash('Question deleted successfully!', 'success')
-    return redirect(url_for('view_all'))
-
-
+         return render_template('page-404.html', error_msg='Page Not Found')
 
 
 
 if __name__ == '__main__':
-    init_db()
     app.run(debug=True)

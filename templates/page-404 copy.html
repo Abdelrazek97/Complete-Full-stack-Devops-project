@@ -13,9 +13,10 @@
                 <div class="row">
                     <div class="col-12 text-center d-flex align-items-center justify-content-center">
                         <div>
-                            <h1 class="mt-5">{{error_msg}} </h1>
-                            <a href="{{url_for('view_person',id=session['user_id'])}}" class="">
-                                الرجوع للصفحة السابقة
+                            <h1 class="mt-5">Page not <span class="fw-bolder text-primary">found</span></h1>
+                            <p class="lead my-4">Oops! Looks like you followed a bad link. If you think this is a problem with us, please tell us.</p>
+                            <a href="{{url_for('semester_data')}}" class="">
+                                Back to homepage
                             </a>
                         </div>
                     </div>

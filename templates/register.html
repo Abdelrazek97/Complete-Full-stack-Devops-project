@@ -1,8 +1,8 @@
 {% extends "base_full.html" %}
 
 {% block content %}
-    <div class="login-container">
-        <h1>Register</h1>
+    <div class="login-container" style="direction: rtl;">
+        <h1> 🔰تسجيل حساب جديد </h1>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -14,25 +14,67 @@
         
         <form method="POST" action="{{ url_for('register') }}">
             <div class="form-group">
-                <label for="username">Username</label>
+                <label for="username"> 👨‍⚕️ اسم المستخدم</label>
                 <input type="text" id="username" name="username" required>
             </div>
             
             <div class="form-group">
-                <label for="password">Password</label>
+                <label for="password"> 🔑 كلمة السر </label>
                 <input type="password" id="password" name="password" required>
             </div>
             
             <div class="form-group">
-                <label for="full_name">Full Name</label>
+                <label for="full_name"> 📝 الاسم بالكامل</label>
                 <input type="text" id="full_name" name="full_name">
+            </div>
+
+            <div class="form-group">
+            <label for="department">💼 القسم:</label>
+            <select name="department" id="department">
+                <option value="MedicalEducation">MedicalEducation</option>
+                <option value="Anatomy">Anatomy</option>
+                <option value="Biochemistry">Biochemistry</option>
+                <option value="Physiology">Physiology</option>
+                <option value="Histology">Histology</option>
+                <option value="Parasitology">Parasitology</option>
+                <option value="Medicine">Medicine</option>
+                <option value="Anatomy">Anatomy</option>
+                <option value="Pathology">Pathology</option>
+                <option value="Pharmacology">Pharmacology</option>
+                <option value="Microbiology">Microbiology</option>
+                <option value="Public Health">Public Health</option>
+                <option value="Forensic">Forensic</option>
+                <option value="Research">Research</option>
+                <option value="Surgery">Surgery</option>
+                <option value="Orthotraumatology">Orthotraumatology</option>
+                <option value="Urology">Urology</option>
+                <option value="Plastic Surgery">Plastic Surgery</option>
+                <option value="Cardiology">Cardiology</option>
+                <option value="Clinical Pathology">Clinical Pathology</option>
+                <option value="Infectious Disease">Infectious Disease</option>
+                <option value="Pediatrics">Pediatrics</option>
+                <option value="Obstertics">Obstertics</option>
+                <option value="Gynecology">Gynecology</option>
+                <option value="Toxicology">Toxicology</option>
+                <option value="Psychiatry">Psychiatry</option>
+                <option value="Dermatology">Dermatology</option>
+                <option value="Anaesthia">Anaesthia</option>
+                <option value="Opthamology">Opthamology</option>
+                <option value="Emergency">Emergency</option>
+                <option value="Clinical Care">Clinical Care</option>
+                <option value="Genetics">Genetics</option>
+                <option value="Nuclear Medicine">Nuclear Medicine</option>
+                <option value="Oncology">Oncology</option>
+                <option value="ENT">ENT</option>
+
+            </select>
             </div>
             
             <div class="form-group">
-                <button type="submit" class="button">Register</button>
+                <button type="submit" class="button">✅ تسجيل </button>
             </div>
             
-            <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+            <p>لديك حساب بالفعل ؟ <a href="{{ url_for('login') }}">تسجيل دخول</a></p>
         </form>
     </div>
 {% endblock %}

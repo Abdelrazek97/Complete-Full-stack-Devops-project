@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+
+
+<div class="table-content" >
+    {% if  session.get('role') == 'admin'%}
+            <h2 style="text-align: center;" >   رؤساء أقسام هيئة التدريس بالكلية</h2>
+             <table>
+            <thead>
+                <tr>
+                    <th> الاسم </th>
+                    <th>  رئيس قسم  </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in headusers %}
+                <tr>
+                    <td><a style="text-decoration: none;" href="{{ url_for('view_person',id=user['id'] ) }}"> 👨‍⚕️ {{ user['full_name']  }}</a> </td>
+                    <td> {{ user.department}}</td>
+                </tr>
+                
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else%}
+    <h2 style="text-align: center;" > ⚫ أعضاء هيئة التدريس بالقسم </h2>
+    
+        <table>
+            <thead>
+                <tr>
+                    <th> 🔰 الاسم </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td><a style="text-decoration: none;" href="{{ url_for('view_person',id=user['id'] ) }}"> 👨‍⚕️   {{ user['full_name']  }}</a> </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+</div>
+
+
+{% endblock %}

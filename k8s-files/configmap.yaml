@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flask-config
+  namespace: flask-app-namespace
+data:
+  MYSQL_HOST: mysql.database-namespace.svc.cluster.local
+  MYSQL_PORT: "3306"
+  MYSQL_DB: acadmic_database

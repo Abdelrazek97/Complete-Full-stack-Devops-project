@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+   
+    <form method="POST" action="{{ url_for('ethical_data') }}">
+        
+        <div class="form-section ">
+            <h1 style="text-align: center;">  التقييم الذاتي - الأخلاقيات والمسؤولية المهنية </h1>
+            
+            <div class="form-group2">
+                <label for="semester"> احترم القيم المهنية والتربوية والأعراف الجامعية وحافظ على سرية العمل</label>
+                <input type="number" id="professional_values" name="professional_values" placeholder=" الحد الاعلي للدرجة 2 " required>
+            </div>
+            <div class="form-group2">
+                <label for="course_code"> تعامل مع الطلاب بطريقة تظهر العدالة والاحترام وتقدير أفكارهم ومقترحاتهم مع تقديم التشجيع والتوجيه المستمر</label>
+                <input type="number" id="offer_encouragement" name="offer_encouragement" placeholder=" الحد الاعلي للدرجة 2 " required>
+            </div>
+            <div class="form-group2">
+                <label for="course_name" >  تعامل باحترام مع الرؤساء والزملاء وتعاون معهم </label>
+                <input type="number" id="respect_leaders" name="respect_leaders" placeholder="الحد الاعلي للدرجة 2  ">
+            </div>
+            <div class="form-group2">
+                <label for="semester_type">  أحسن التصرف وتحمل مسؤوليات أعلى </label>
+                <input type="number" id="take_responsibility" name="take_responsibility" placeholder=" الحد الاعلي للدرجة 2 ">
+            </div>
+
+            <div class="form-group2">
+                <label for="num_students"> تمتع بمظهر عام لائق ومناسب لبيئة العمل </label>
+                <input type="number" id="decent_appearance" name="decent_appearance" placeholder="الحد الاعلي للدرجة 2 ">
+            </div>
+            <div class="form-group2">
+                <label for="teaching_load"> التزم بمواعيد المحاضرات </label>
+                <input type="number" id="punctuality" name="punctuality" placeholder="الحد الاعلي للدرجة 2 ">
+            </div>
+            <div class="form-group2">
+                <label for="credit_hours"> التزم بالساعات المكتبية</label>
+                <input type="number" id="office_hours" name="office_hours" placeholder="الحد الاعلي للدرجة 3  ">
+            </div>
+           <div class="form-group">
+            <button type="submit" class="button">  🔄 تسجيل البيانات  </button>
+        </div>
+        </div>
+        
+       
+      
+        
+    </form>
+{% endblock %}
+

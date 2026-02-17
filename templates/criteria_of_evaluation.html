@@ -5,7 +5,7 @@
     <form method="POST" action="{{ url_for('cirteria_data') }}">
         
         <div class="form-section ">
-            <h1> جوانب و معايير التقويم و مؤشرات الأداء </h1>
+            <h1 style="text-align: center;"> التقييم الذاتي لجوانب و معايير التقويم و مؤشرات الأداء </h1>
             
             <div class="form-group2">
                 <label for="semester"> طور المقررات الدراسية في مجال تخصصها والتي قام بتدريسها و حدث مادتها العلمية خلال الفصل الدراسي </label>
@@ -46,13 +46,13 @@
                 <label for="teaching_load">  قدم الارشاد الأكاديمي للطلاب </label>
                 <input type="number" id="Provide_academic_guidance" name="Provide_academic_guidance" placeholder="الحد الاعلي للدرجة 5 ">
             </div>
-
+        <div class="form-group">
+            <button type="submit" class="button">   🔄 تسجيل البيانات  </button>
+        </div>
         </div>
         
        
       
-        <div class="form-group">
-            <button type="submit" class="button">Save all</button>
-        </div>
+      
     </form>
 {% endblock %}

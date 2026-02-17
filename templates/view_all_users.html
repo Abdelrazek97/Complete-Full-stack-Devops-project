@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block content %}
+
+
+      
+<div class="table-content" >
+    {% if  session.get('role') == 'admin' %}
+      <form method="GET" action="{{ url_for('view_all_users') }}" style="justify-content: center;">
+    <div class="form-group" style="justify-content: center;">
+        <label for="department">القسم:</label>
+
+        <select name="department"
+                id="department"
+                style="direction: ltr;">
+
+            <option value= "All">All</option>
+            <option value="MedicalEducation">MedicalEducation</option>
+            <option value="Anatomy">Anatomy</option>
+            <option value="Biochemistry">Biochemistry</option>
+            <option value="Physiology">Physiology</option>
+            <option value="Histology">Histology</option>
+            <option value="Parasitology">Parasitology</option>
+            <option value="Medicine">Medicine</option>
+            <option value="Pathology">Pathology</option>
+            <option value="Pharmacology">Pharmacology</option>
+            <option value="Microbiology">Microbiology</option>
+            <option value="Public Health">Public Health</option>
+            <option value="Forensic">Forensic</option>
+            <option value="Research">Research</option>
+            <option value="Surgery">Surgery</option>
+            <option value="Orthotraumatology">Orthotraumatology</option>
+            <option value="Urology">Urology</option>
+            <option value="Plastic Surgery">Plastic Surgery</option>
+            <option value="Cardiology">Cardiology</option>
+            <option value="Clinical Pathology">Clinical Pathology</option>
+            <option value="Infectious Disease">Infectious Disease</option>
+            <option value="Pediatrics">Pediatrics</option>
+            <option value="Obstertics">Obstertics</option>
+            <option value="Gynecology">Gynecology</option>
+            <option value="Toxicology">Toxicology</option>
+            <option value="Psychiatry">Psychiatry</option>
+            <option value="Dermatology">Dermatology</option>
+            <option value="Anaesthia">Anaesthia</option>
+            <option value="Opthamology">Opthamology</option>
+            <option value="Emergency">Emergency</option>
+            <option value="Clinical Care">Clinical Care</option>
+            <option value="Genetics">Genetics</option>
+            <option value="Nuclear Medicine">Nuclear Medicine</option>
+            <option value="Oncology">Oncology</option>
+            <option value="ENT">ENT</option>
+
+
+        </select>
+        <div style="padding: 10px;">
+         <button type="submit" class="button">عرض</button>
+         </div>
+    </div>
+          
+</form>
+{% endif %}
+
+
+<table>
+    <thead>
+        <tr>
+            <th>⚪  الاسم</th>
+            <th>📖 القسم </th>
+        </tr>
+    </thead>
+    {% if users  %}
+    <tbody>
+        {% for user in users %}
+                <tr>
+                    <td><a style="text-decoration: none;" href="{{ url_for('view_person',id=user['id'] ) }}">  👨‍⚕️  {{ user['full_name']  }}</a> </td>
+                    <td>{{ user.department}}</td>
+                </tr>
+                {% endfor %} 
+                {% else %}
+                <tr>
+                    <td> لاتوجد بيانات </td>
+                </tr>
+            </tbody>
+            {% endif %}
+        </table>
+        
+
+       
+</div>
+
+
+
+{% endblock %}

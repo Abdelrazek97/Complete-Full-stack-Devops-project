@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flask-app-namespace
+  labels:
+    name: flask-app-namespace
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: database-namespace
+  labels:
+    name: database-namespace

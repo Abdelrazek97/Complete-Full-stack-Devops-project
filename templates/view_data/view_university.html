@@ -3,6 +3,8 @@
 
 
 <div class="table-content" >
+            <h2 style="text-align: center;" > ⚫  خدمة القسم و الكلية و الجامعة و المجتمع   </h2>
+
         <table>
             <thead>
                 <tr>
@@ -23,14 +25,14 @@
                    <td> لم يتم التقييم</td>
                    {% else %}
                     <td>{{ item['aspects_sum'] }}</td>
-                       {% endif %}
+                    {% endif %}
                     <td>{{ 20 }}</td>
 
                     {% if item['evaluation_sum'] == None %}
                    <td> لم يتم التقييم</td>
                    {% else %}
                     <td>{{ item['evaluation_sum'] }}</td>
-                       {% endif %}
+                    {% endif %}
                 </tr>
                 {% endfor %}
             </tbody>

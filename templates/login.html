@@ -2,26 +2,26 @@
 
 {% block content %}
 
-    <div class="login-container">
-        <h1>Login</h1>
+    <div class="login-container" style="direction: rtl;">
+        <h1> 🔰 تسجيل دخول </h1>
         
         <form method="POST" action="{{ url_for('login') }}">
             <div class="form-group">
-                <label for="username">Username</label>
+                <label for="username">👨‍⚕️ إسم المستخدم </label>
                 <input type="text" id="username" name="username" required>
             </div>
             
             <div class="form-group">
-                <label for="password">Password</label>
+                <label for="password">🔑 كلمة السر</label>
                 <input type="password" id="password" name="password" required>
            
             </div>
             
             <div class="form-group">
-                <button type="submit" class="logout-button">Login</button>
+                <button type="submit" class="button" style="font-size: 20px;"> ✅ دخول </button>
             </div>
             
-            <p>Don't have an account? <a href="{{ url_for('register') }}">Register here</a></p>
+            <p> 💠 ليس لديك حساب ؟ <a href="{{ url_for('register') }}">  تسجيل حساب جديد   </a></p>
         </form>
     </div>
 {% endblock %}

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,16 +8,22 @@
 </head>
 <body>
     <div class="navbar">
-        {% if session.get('role') == 'admin' %}
-        <a href="{{ url_for('view_kpis') }}" class="nav-button">view KPIs</a>
+         {% if 'user_id' in session %}
 
+                <button class="nav-button">
+                    Welcome, {{ session.get('username') }} ({{ session.get('role') }}) </button>
+         {% endif %}
+
+        {% if session.get('role') == 'admin' or session.get('role') == 'head' %}
+        <a href="{{ url_for('view_kpis') }}" class="nav-button"> عرض مؤشرات الاداء 📈 </a>
+           
          {% endif %}
 
         
                 {% if 'user_id' in session %}
                     <!-- Main navigation items -->
                     <!-- User info and logout -->
-                    <a href="{{ url_for('view_data') }}" class="nav-button">view data</a>
+                    <a href="{{ url_for('view_person',id=session.get('user_id')) }}" class="nav-button"> عرض الملف الشخصي 📜 </a>
                     <div class="user-section">      
                    </div>
                 {% else %}
@@ -28,23 +34,17 @@
  
     </div>
       
-        <div class="container">
-                <div class="content">
-                    {% block content %}{% endblock %}
-                </div>
-            
-            <div class="sidebar">
-           {% if session.get('role') == 'admin' %}
-    
-                    {% include 'admin_sidebar.html' %}   
+    <div class="container">
+        <main class="content">
+            {% block content %}{% endblock %}
+        </main>
 
-            {% else %}
-            
-                    {% include 'sidebar.html' %}   
-            {% endif %}
-                </div>
-          
-        </div>
+        {% if session.get('role') == 'admin' or session.get('role') == 'head' %}
+            {% include 'admin_sidebar.html' %}
+        {% else %}
+            {% include 'sidebar.html' %}
+        {% endif %}
+    </div>
         
    
 </body>
