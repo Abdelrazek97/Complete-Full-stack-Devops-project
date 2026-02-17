@@ -1,121 +1,26 @@
-# Academic App
+# 🎓 Academic App
 
-A lightweight Flask-based academic management web application with MySQL backend, Docker support, and Kubernetes manifests for deployment.
+![Flask](https://img.shields.io/badge/Flask-Python%203.10+-black?logo=flask)
+![MySQL](https://img.shields.io/badge/MySQL-Database-blue?logo=mysql)
+![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?logo=docker)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-Orchestrated-326CE5?logo=kubernetes)
 
-## Overview
+A lightweight **Flask-based academic management system** for handling users, programs, semesters, questions, and evaluation workflows.
 
-This repository contains a Flask web application for managing academic data (users, programs, semesters, questions, and various evaluation pages). It includes:
+The project is fully containerized and includes **Docker Compose for local development** and **Kubernetes manifests for production deployment**.
 
-- `app.py`: main Flask application entrypoint.
-- `templates/`: Jinja2 HTML templates used by the app.
-- `static/`: CSS and static assets.
-- `k8s-files/`: Kubernetes manifests and helper SQL.
-- `docker-compose.yml`: local Docker Compose configuration.
-- `requirements.txt`: Python dependencies.
+---
 
-## Prerequisites
+## 📌 Features
 
-- Python 3.10+ (or use included virtual environment in `env/`).
-- Docker & Docker Compose (for containerized runs).
-- kubectl (for deploying to Kubernetes clusters).
+- User & academic data management
+- MySQL relational database
+- Jinja2 server-side rendering
+- Dockerized development environment
+- Kubernetes deployment manifests
+- Production-ready with Gunicorn
 
-## Quickstart — Local (virtualenv)
+---
 
-1. Create and activate a virtual environment (optional):
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-```
-
-2. Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-3. Run the app locally:
-
-```bash
-python app.py
-```
-
-Open your browser at http://127.0.0.1:5000/ (or as printed by the app).
-
-Alternatively run with Gunicorn for production-like server:
-
-```bash
-gunicorn -w 4 app:app
-```
-
-## Docker (recommended for parity)
-
-Build and run with Docker Compose:
-
-```bash
-docker-compose up --build
-```
-
-This will start the Flask app and a MySQL container per `docker-compose.yml`.
-
-To stop and remove containers:
-
-```bash
-docker-compose down
-```
-
-## Kubernetes
-
-The `k8s-files/` directory contains manifests for deploying the app and MySQL to a Kubernetes cluster. To apply the full kustomized stack:
-
-```bash
-kubectl apply -k k8s-files/
-```
-
-See `k8s-files/README.md` for more details and secrets management.
-
-## Database
-
-- Example SQL queries and initial data are in `queries.sql` and `k8s-files/queries.sql`.
-- Update database credentials via environment variables or the `docker-compose.yml` / Kubernetes secrets before starting.
-
-## Project Structure (high level)
-
-- **Templates**: `templates/` contains the HTML pages used by the app (login, register, views, admin pages).
-- **Static**: `static/` holds CSS files (`styles.css`, `style.css`) and other assets.
-- **K8s**: `k8s-files/` holds YAMLs for deployments, services, secrets, PVCs and a `README.md`.
-
-## Troubleshooting
-
-- If the app fails to connect to MySQL, ensure the DB is running and credentials match.
-- Check container logs for errors:
-
-```bash
-docker-compose logs -f
-```
-
-or for Kubernetes:
-
-```bash
-kubectl logs -l app=flask -n <namespace>
-```
-
-## Development notes
-
-- Templates are standard Jinja2 files in `templates/`.
-- Add static CSS under `static/` and reference them in templates.
-- To add new routes, edit `app.py` and corresponding templates.
-
-## Useful files
-
-- [app.py](app.py) — application entrypoint
-- [docker-compose.yml](docker-compose.yml) — Docker Compose config
-- [requirements.txt](requirements.txt) — Python deps
-- [k8s-files/README.md](k8s-files/README.md) — Kubernetes deployment notes
-
-## License & Contact
-
-This repository does not include an explicit license file. Add one if you plan to publish.
-
-If you want further edits to the README (more details about environment variables, example screenshots, or API endpoints), tell me what to include and I will update it.
+## 🏗️ Architecture
 
