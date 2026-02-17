@@ -1,5 +1,6 @@
-name: Build and push Docker image
 
+# This GitHub Actions workflow builds and pushes a Docker image to Docker Hub whenever there is a push to the main branch or when manually triggered.
+name: Build and push Docker image
 on:
   push:
     branches: [ main ]
