@@ -1,0 +1,18 @@
+GitHub Actions workflow added: .github/workflows/docker-image.yml
+
+How it works:
+- On push to `main` or on manual `workflow_dispatch`, the workflow builds a Docker image
+	from `Dockerfile.flask` and pushes it to Docker Hub.
+
+Required repository secrets (add in GitHub Settings → Secrets):
+- `DOCKERHUB_USERNAME` : your Docker Hub username
+- `DOCKERHUB_TOKEN` : a Docker Hub access token (or password)
+
+Image name produced:
+- `${{ secrets.DOCKERHUB_USERNAME }}/acadmic_app:latest`
+- `${{ secrets.DOCKERHUB_USERNAME }}/acadmic_app:${{ github.sha }}`
+
+Notes:
+- Adjust the `IMAGE_NAME` env in the workflow if you prefer a different repository name.
+- Ensure `Dockerfile.flask` is present at repo root (workflow uses it as the Dockerfile).
+
