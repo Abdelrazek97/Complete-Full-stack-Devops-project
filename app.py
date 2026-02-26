@@ -85,20 +85,6 @@ class MySQLConnection:
 def get_db_connection():
     return MySQLConnection()
 
-# Initialize database
-def init_db():
-    conn = get_db_connection()
-
-    # Create admin user if not exists
-    admin_exists = conn.execute('SELECT 1 FROM users WHERE username = ?', ('admin',)).fetchone()
-    if not admin_exists:
-        conn.execute(
-            'INSERT INTO users (username, password, role, full_name,department) VALUES (?, ?, ?, ?, ?)',
-            ('admin', generate_password_hash('admin123'), 'admin', 'Administrator','Medical Education')
-        )
-    
-    conn.commit()
-    conn.close()
 
 # Login required decorator
 def login_required(f):
@@ -135,6 +121,21 @@ def index():
     else:
         return redirect(url_for('login'))
 
+@app.route('/create_admin_user')
+def admin_page():
+    conn = get_db_connection()
+
+    # Create admin user if not exists
+    admin_exists = conn.execute('SELECT 1 FROM users WHERE username = ?', ('admin',)).fetchone()
+    if not admin_exists:
+        conn.execute(
+            'INSERT INTO users (username, password, role, full_name,department) VALUES (?, ?, ?, ?, ?)',
+            ('admin', generate_password_hash('admin123'), 'admin', 'Administrator','Medical Education')
+        )
+    conn.commit()
+    conn.close()
+    return render_template('page-404.html',errmsg='Admin user created with username "admin" and password "admin123". Please change the password after logging in.')
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -164,6 +165,7 @@ def register():
         password = request.form['password']
         full_name = request.form['full_name']
         department = request.form['department']
+        role = request.form['role']
         
         if not username or not password:
             flash('Username and password are required', 'danger')
@@ -171,8 +173,35 @@ def register():
             conn = get_db_connection()
             try:
                 conn.execute(
-                    'INSERT INTO users (username, password, full_name, department) VALUES (?, ?, ?, ?)',
-                    (username, generate_password_hash(password), full_name, department)
+                    'INSERT INTO users (username, password, full_name, department,role) VALUES (?, ?, ?, ?,?)',
+                    (username, generate_password_hash(password), full_name, department, role)
+                )
+                conn.commit()
+                flash('Registration successful! Please log in.', 'success')
+                return redirect(url_for('login'))
+            except pymysql.err.IntegrityError:
+                flash('Username already exists', 'danger')
+            finally:
+                conn.close()
+    
+    return render_template('register.html')
+
+
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        full_name = request.form['full_name']
+        department = request.form['department']
+        role = request.form['role']
+        
+        if not username or not password:
+            flash('Username and password are required', 'danger')
+        else:
+            conn = get_db_connection()
+            try:
+                conn.execute(
+                    'INSERT INTO users (username, password, full_name, department,role) VALUES (?, ?, ?, ?,?)',
+                    (username, generate_password_hash(password), full_name, department, role)
                 )
                 conn.commit()
                 flash('Registration successful! Please log in.', 'success')
@@ -204,7 +233,8 @@ def semester_data():
             'course_name': request.form['course_name'],
             'semester_type': request.form['semester_type'] ,
             'credit_hours': int(request.form['credit_hours']) if request.form['credit_hours'] else None,
-            
+            'd2l' : request.form['d2l'],
+            'QuestionMark' : request.form['QuestionMark']
         }
 
         # Insert into database
@@ -212,9 +242,9 @@ def semester_data():
         conn.execute('''
             INSERT INTO academic_data (
                 user_id, semester, course_code, num_students, teaching_load,
-                course_name, semester_type, credit_hours
+                course_name, semester_type, credit_hours, d2l, QuestionMark
                 
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ? )
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,? )
         ''', tuple(data.values()))
         conn.commit()
         conn.close()
@@ -773,6 +803,14 @@ def view_person(id):
             WHERE Scientific_production.user_id = ?
             
         ''',(id,)).fetchone()
+
+    ethics_responsibility = conn.execute('''
+            SELECT ethics_responsibility.*, users.username, users.full_name 
+            FROM ethics_responsibility 
+            JOIN users ON ethics_responsibility.user_id = users.id
+            WHERE ethics_responsibility.user_id = ?
+            
+        ''',(id,)).fetchone()
     
     semseters = conn.execute('''
             SELECT academic_data.*, users.username, users.full_name 
@@ -807,7 +845,7 @@ def view_person(id):
 
     conn.close()
     return render_template('view_data/profile.html', id=id,user=user, university_evaluation=university_evaluation,Scientific_production=Scientific_production,Evaluation_aspects=Evaluation_aspects
-                          ,semseters=semseters, activity=activity,current_year=current_year,participate_conference=participate_conference,Scientific_research=Scientific_research )
+                          ,semseters=semseters, activity=activity,current_year=current_year,participate_conference=participate_conference,Scientific_research=Scientific_research, ethics_responsibility=ethics_responsibility)
 
 @app.route('/update/university/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -903,12 +941,7 @@ def view_kpis():
             ''').fetchone()
             # Admin can see all data
 
-            activity = conn.execute('''
-            SELECT activity_data.*, users.username, users.full_name 
-            FROM activity_data 
-            JOIN users ON activity_data.user_id = users.id
-            ORDER BY activity_data.created_at DESC
-            ''').fetchall()
+           
             Scientific_research1 = conn.execute('''
             SELECT COUNT(*)
             FROM  Scientific_research
@@ -940,7 +973,7 @@ def view_kpis():
             research2_percent = (Scientific_research2[0]/(users[0]))*100
             research1_percent = (Scientific_research1[0]/(users[0]))*100
             conf_percent = (part_in_conf[0]/(users[0]))*100
-            print(Evaluation_aspects[0])
+            
             Evaluation_aspects_percent = (Evaluation_aspects[0]/(users[0]))
             university_evaluation_percent = (university_evaluation[0]/(users[0]))
 
@@ -975,15 +1008,7 @@ def view_kpis():
                 JOIN users ON University_Service.user_id = users.id
                 WHERE users.department = ?                            
                 ''', (department,)).fetchone()
-                # Admin can see all data
 
-                activity = conn.execute('''
-                SELECT activity_data.*, users.username, users.full_name 
-                FROM activity_data 
-                JOIN users ON activity_data.user_id = users.id
-                WHERE users.department = ?                               
-                ORDER BY activity_data.created_at DESC
-                ''', (department,)).fetchall()
                 Scientific_research1 = conn.execute('''
                 SELECT COUNT(*)
                 FROM  Scientific_research
@@ -1019,7 +1044,7 @@ def view_kpis():
                 WHERE users.department = ? 
                 ''',(department,)).fetchone()
 
-                print(activity_kpi[0])
+                
 
                 activity_percent = (activity_kpi[0]/(users[0]))*100
                 research2_percent = (Scientific_research2[0]/(users[0]))*100
@@ -1062,13 +1087,7 @@ def view_kpis():
                 ''', (session['department'],)).fetchone()
                 # Admin can see all data
 
-                activity = conn.execute('''
-                SELECT activity_data.*, users.username, users.full_name 
-                FROM activity_data 
-                JOIN users ON activity_data.user_id = users.id
-                WHERE users.department = ?                               
-                ORDER BY activity_data.created_at DESC
-                ''', (session['department'],)).fetchall()
+               
                 Scientific_research1 = conn.execute('''
                 SELECT COUNT(*)
                 FROM  Scientific_research
@@ -1108,9 +1127,9 @@ def view_kpis():
                 research2_percent = (Scientific_research2[0]/(users[0]))*100
                 research1_percent = (Scientific_research1[0]/(users[0]))*100
                 conf_percent = (part_in_conf[0]/(users[0]))*100
-                print(Evaluation_aspects[0])
-                Evaluation_aspects_percent = (Evaluation_aspects[0]/(users[0]))
-                university_evaluation_percent = (university_evaluation[0]/(users[0]))
+                
+                Evaluation_aspects_percent = (Evaluation_aspects[0]/(users[0])) if users[0] > 0 else 0
+                university_evaluation_percent = (university_evaluation[0]/(users[0])) if users[0] > 0 else 0
 
                 return render_template('view_kpis.html', academic_kpi=academic_kpi[0],activity_kpi=activity_kpi[0],
                 activity_percent=int(activity_percent), University_Service=University_Service[0],

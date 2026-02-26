@@ -15,8 +15,8 @@
                 <tr>
                     <th >الأداء التدريسي</th>
                     <th >الحد الأعلى للدرجة</th>
-                    <th >التقويم الذاتي</th>
-                    <th>تقويم رئيس القسم </th>
+                    <th >التقييم الذاتي</th>
+                    <th>تقييم رئيس القسم </th>
                 </tr>
             </thead>
             
@@ -24,26 +24,26 @@
                     <td > احترم القيم المهنية والتربوية والأعراف الجامعية وحافظ على سرية العمل </td>
                     <td> 2 </td>
                     <td>{{ethics_responsibility.professional_values }}</td>
-                    <td w><input type="number" id="professional_values_evaluation" name="professional_values_evaluation" placeholder=" الحد الاعلي للدرجة 2 " required></td>
+                    <td w><input type="number"  min="0" max="2"  id="professional_values_evaluation" name="professional_values_evaluation" placeholder=" الحد الاعلي للدرجة 2 " required></td>
                 </tr>
                 <tr>
                     
                     <td> تعامل مع الطلاب بطريقة تظهر العدالة والاحترام وتقدير أفكارهم ومقترحاتهم مع تقديم التشجيع والتوجيه المستمر </td>
                     <td> 2 </td>
                     <td> {{ethics_responsibility.offer_encouragement }} </td>
-                    <td><input type="number" id="offer_encouragement_evaluation" name="offer_encouragement_evaluation" placeholder=" الحد الاعلي للدرجة 2 " required></td>
+                    <td><input type="number"  min="0" max="2"  id="offer_encouragement_evaluation" name="offer_encouragement_evaluation" placeholder=" الحد الاعلي للدرجة 2 " required></td>
                 </tr>
                 <tr>
                     <td>  تعامل باحترام مع الرؤساء والزملاء وتعاون معهم  </td>
                     <td> 2 </td>
                     <td> {{ethics_responsibility.respect_leaders }} </td>
-                    <td><input type="number" id="respect_leaders_evaluation" name="respect_leaders_evaluation" placeholder=" الحد الاعلي للدرجة 2 " required></td>
+                    <td><input type="number"  min="0" max="2"  id="respect_leaders_evaluation" name="respect_leaders_evaluation" placeholder=" الحد الاعلي للدرجة 2 " required></td>
                 </tr>
                 <tr>
                     <td>  أحسن التصرف وتحمل مسؤوليات أعلى </td>
                     <td> 2 </td>
                     <td> {{ethics_responsibility.take_responsibility }} </td>
-                    <td><input type="number" id="take_responsibility_evaluation" name="take_responsibility_evaluation" placeholder=" الحد الاعلي للدرجة 2 "></td>
+                    <td><input type="number"  min="0" max="2"  id="take_responsibility_evaluation" name="take_responsibility_evaluation" placeholder=" الحد الاعلي للدرجة 2 "></td>
                 </tr>
 
                 <tr>
@@ -51,12 +51,12 @@
                     <td> تمتع بمظهر عام لائق ومناسب لبيئة العمل  </td>
                     <td> 2 </td>
                     <td> {{ethics_responsibility.decent_appearance }} </td>
-                    <td><input type="number" id="decent_appearance_evaluation" name="decent_appearance_evaluation" placeholder="الحد الاعلي للدرجة 2 "> </td>
+                    <td><input type="number"  min="0" max="2"  id="decent_appearance_evaluation" name="decent_appearance_evaluation" placeholder="الحد الاعلي للدرجة 2 "> </td>
                 <tr>
                     <td> التزم بمواعيد المحاضرات </td>
                     <td> 2 </td>
                     <td> {{ethics_responsibility.punctuality }} </td>
-                    <td><input type="number" id="punctuality_evaluation" name="punctuality_evaluation" placeholder="الحد الاعلي للدرجة 2 "> </td>
+                    <td><input type="number"  min="0" max="2"  id="punctuality_evaluation" name="punctuality_evaluation" placeholder="الحد الاعلي للدرجة 2 "> </td>
                     
                 </tr>
 
@@ -65,7 +65,7 @@
                     <td>  التزم بالساعات المكتبية </td>
                     <td> 3 </td>
                     <td> {{ethics_responsibility.office_hours }} </td>
-                <td><input type="number" id="office_hours_evaluation" name="office_hours_evaluation" placeholder="الحد الاعلي للدرجة 3  "></td>
+                <td><input type="number"  min="0" max="3"  id="office_hours_evaluation" name="office_hours_evaluation" placeholder="الحد الاعلي للدرجة 3  "></td>
                 </tr>
 
                
@@ -78,7 +78,7 @@
        
       
         <div class="form-group">
-            <button type="submit" class="button">Save all</button>
+            <button type="submit" class="button">🔄 تسجيل البيانات</button>
         </div>
     </form>
 {% endblock %}

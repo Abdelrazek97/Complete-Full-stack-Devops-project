@@ -9,9 +9,12 @@
 <body>
     <div class="navbar">
          {% if 'user_id' in session %}
-
-                <button class="nav-button">
-                    Welcome, {{ session.get('username') }} ({{ session.get('role') }}) </button>
+        
+        <div class="auth-logo" style="margin-bottom: 0px;">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="App logo">
+        </div>
+    <div>    
+    
          {% endif %}
 
         {% if session.get('role') == 'admin' or session.get('role') == 'head' %}
@@ -33,7 +36,7 @@
                 {% endif %}
  
     </div>
-      
+      </div>
     <div class="container">
         <main class="content">
             {% block content %}{% endblock %}
@@ -45,6 +48,7 @@
             {% include 'sidebar.html' %}
         {% endif %}
     </div>
+    
         
    
 </body>

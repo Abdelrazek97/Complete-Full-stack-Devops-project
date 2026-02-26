@@ -3,6 +3,9 @@
 {% block content %}
 
     <div class="login-container" style="direction: rtl;">
+        <div class="auth-logo">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="App logo">
+        </div>
         <h1> 🔰 تسجيل دخول </h1>
         
         <form method="POST" action="{{ url_for('login') }}">

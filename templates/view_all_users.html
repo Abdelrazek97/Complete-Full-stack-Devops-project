@@ -35,8 +35,7 @@
             <option value="Clinical Pathology">Clinical Pathology</option>
             <option value="Infectious Disease">Infectious Disease</option>
             <option value="Pediatrics">Pediatrics</option>
-            <option value="Obstertics">Obstertics</option>
-            <option value="Gynecology">Gynecology</option>
+            <option value="OBGYN">OBGYN</option>
             <option value="Toxicology">Toxicology</option>
             <option value="Psychiatry">Psychiatry</option>
             <option value="Dermatology">Dermatology</option>
@@ -73,6 +72,7 @@
                 <tr>
                     <td><a style="text-decoration: none;" href="{{ url_for('view_person',id=user['id'] ) }}">  👨‍⚕️  {{ user['full_name']  }}</a> </td>
                     <td>{{ user.department}}</td>
+                   
                 </tr>
                 {% endfor %} 
                 {% else %}

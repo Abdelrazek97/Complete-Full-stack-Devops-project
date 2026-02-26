@@ -94,6 +94,8 @@ CREATE TABLE IF NOT EXISTS `academic_data` (
   `course_name` VARCHAR(255) DEFAULT NULL,
   `semester_type` VARCHAR(50) DEFAULT NULL,
   `credit_hours` INT DEFAULT NULL,
+  `d2l` VARCHAR(255) DEFAULT NULL,
+  `QuestionMark` VARCHAR(255) DEFAULT NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_academic_data_user` (`user_id`),
@@ -154,19 +156,6 @@ CREATE TABLE IF NOT EXISTS `participate_conference` (
   CONSTRAINT `fk_participate_conference_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `questions` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `question_text` TEXT NOT NULL,
-  `topic` TEXT NOT NULL,
-  `main_slo` TEXT NOT NULL,
-  `enabling_slos` TEXT NOT NULL,
-  `complexity_level` TEXT NOT NULL,
-  `student_level` TEXT NOT NULL,
-  `options` TEXT NOT NULL,
-  `correct_answer` TEXT NOT NULL,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `university_evaluation` (
   `id` INT NOT NULL AUTO_INCREMENT,
@@ -188,3 +177,6 @@ CREATE TABLE IF NOT EXISTS `university_evaluation` (
   KEY `idx_university_evaluation_user` (`user_id`),
   CONSTRAINT `fk_university_evaluation_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+        

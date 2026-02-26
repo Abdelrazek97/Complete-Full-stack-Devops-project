@@ -35,12 +35,36 @@
                 <label for="credit_hours">◻ الساعات المعتمدة</label>
                 <input type="number" id="credit_hours" name="credit_hours" placeholder="عدد الساعات المعتمدة">
             </div>
+            <div class="form-group">
+            <label for="d2l">◻ استخدم منظومة التعلم الالكترونية (D2L)*</label>
+            <select name="d2l" id="d2l">
+                <option value="دائما">دائما</option>
+                <option value="بعض الاحيان">بعض الاحيان</option>
+                <option value="لا استخدمها">لا استخدمها</option>
+             
 
+            </select>
+            </div>
+<div class="form-group">
+            <label for="QuestionMark">◻ استخدم منظومة الامتحانات الالكترونية (QuestionMark)*</label>
+            <select name="QuestionMark" id="QuestionMark">
+                <option value="دائما">دائما</option>
+                <option value="بعض الاحيان">بعض الاحيان</option>
+                <option value="لا استخدمها">لا استخدمها</option>
+             
+
+            </select>
+            </div>
         </div>
         
        
        <div class="form-group">
-            <button type="submit" class="button">  🔄 تسجيل البيانات </button>
+        <div>
+            <h6>
+            *: إضافة تقرير استخدام الأنظمة الالكترونية بالكلية من فرع نظم المعلومات بالملف الشخصي
+        </h6>
+        <button type="submit" class="button">  🔄 تسجيل البيانات </button>
+    </div>
         </div>
     </form>
 {% endblock %}

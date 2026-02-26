@@ -35,8 +35,7 @@
             <option value="Clinical Pathology">Clinical Pathology</option>
             <option value="Infectious Disease">Infectious Disease</option>
             <option value="Pediatrics">Pediatrics</option>
-            <option value="Obstertics">Obstertics</option>
-            <option value="Gynecology">Gynecology</option>
+            <option value="OBGYN">OBGYN</option>
             <option value="Toxicology">Toxicology</option>
             <option value="Psychiatry">Psychiatry</option>
             <option value="Dermatology">Dermatology</option>
@@ -63,12 +62,12 @@
             <thead>
                 {% if department == 'All' %}
                 <tr>
-                    <th> 💹 مؤاشرات الاداء للكلية </th>
+                    <th> 💹 مؤاشرات الأداء للكلية </th>
                     <th> القيمة </th>
                 </tr>
                 {% else %}
                 <tr>
-                    <th>  💹 مؤاشرات الاداء قسم  {{department}}</th>
+                    <th>  💹 مؤاشرات الأداء قسم  {{department}}</th>
                     <th> القيمة </th>
                 </tr>
                 {% endif %}
@@ -83,7 +82,7 @@
                     <td>{{ activity_percent }}%</td>
                 </tr>
                 <tr>
-                    <td> 3 - عدد الابحاث المنشورة في المجلات العلمية المحكمة</td>
+                    <td> 3 - عدد الأبحاث المنشورة في المجلات العلمية المحكمة</td>
                     <td>{{ Scientific_research2 }}</td>
                 </tr>
                 <tr>
@@ -91,7 +90,7 @@
                     <td>{{ research1_percent }}%</td>
                 </tr>
                 <tr>
-                    <td> 5 - عدد الابحاث المقبولة في المؤتمرات و الندوات العلمية المتخصصة </td>
+                    <td> 5 - عدد الأبحاث المقبولة في المؤتمرات و الندوات العلمية المتخصصة </td>
                     <td>{{ Scientific_research2 }}</td>
                 </tr>
                 <tr>
@@ -103,15 +102,15 @@
                     <td>{{ conf_percent }}%</td>
                 </tr>
                 <tr>
-                    <td> 8 - عدد الخدمات المجتمعية المقدمة من الاقسام العلمية  </td>
+                    <td> 8 - عدد الخدمات المجتمعية المقدمة من الأقسام العلمية  </td>
                     <td>{{ University_Service }}</td>
                 </tr>
                 <tr>
-                    <td>  9 - متوسط درجات تقييم الاداء التدريسي لأعضاء هيئة التدريس    </td>
+                    <td>  9 - متوسط درجات تقييم الأداء التدريسي لأعضاء هيئة التدريس    </td>
                     <td>{{ Evaluation_aspects_percent }}</td>
                 </tr>
                 <tr>
-                    <td>  10 - متوسط درجات تقييم الانتاج البحثي والانشطة العلمية    </td>
+                    <td>  10 - متوسط درجات تقييم الإنتاج البحثي والانشطة العلمية    </td>
                     <td>{{ activity_kpi }}</td>
                 </tr>
                 <tr>
@@ -119,7 +118,7 @@
                     <td>{{ university_evaluation_percent }}</td>
                 </tr>
                 <tr>
-                    <td>  12 - متوسط درجات تقييم الاخلاقيات و المسؤولية المهنية   </td>
+                    <td>  12 - متوسط درجات تقييم الأخلاقيات و المسؤولية المهنية   </td>
                     <td>{{ activity_kpi }}</td>
                 </tr>
             </tbody>

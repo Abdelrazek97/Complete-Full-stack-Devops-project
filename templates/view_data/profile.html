@@ -2,6 +2,7 @@
 {% block content %}
 <form method="GET" action="{{ url_for('view_person',id=id) }}">
 <h2 class="center-text">  {{ user.full_name }}  ➡ {{ user.department }} Department 👨‍⚕️</h2>
+<div class="table-content">
 
 <div class="section-head">
 <h3  >  🔰  خدمة القسم و الكلية و الجامعة و المجتمع </h3>
@@ -12,7 +13,6 @@
        
          {% endif %}
         </div>
-<div class="table-content">
         <table>
             <thead>
                 <tr>
@@ -38,14 +38,14 @@
                 </tr>
             </tbody>
         </table>
-
+</div>
 <div class="table-content" >
     
     <div class="section-head">
         <h3> 🔰  الانتاج العلمي والانشطة العلمية والمهنية  </h3>
 {% if session.get('user_id') == id  and  Scientific_production == None  %}
  <a class="button button-link" href="{{url_for('Scientific_production_data')}}"> أضغط للتقييم</a>
-    {% elif session.get('role') != 'user'and Scientific_production.supervision_Graduation == None   %}
+    {% elif session.get('role') != 'user'and Scientific_production.supervision_Graduation_Evaluation == None   %}
          <a class="button button-link" href="{{url_for('update',id=id)}}"> أضغط للتقييم</a>
          {% endif %}
         </div>
@@ -55,8 +55,8 @@
                     <th>الانتاج العلمي</th>
                     <th>النشاط العلمي</th>
                     <th>الحد الاعلي للدرجة</th>
-                    <th>تقييم رئيس القسم  الانتاج العلمي </th>
-                    <th>تقييم رئيس القسم  النشاط العلمي </th>
+                    <th>تقييم رئيس القسم للانتاج العلمي </th>
+                    <th>تقييم رئيس القسم  للنشاط العلمي </th>
                 </tr>
             </thead>
             <tbody>
@@ -86,7 +86,7 @@
 
 <div class="table-content" >
     <div class="section-head">
-        <h3> 🔰  جوانب و معايير التقويم و مؤشرات الأداء    </h3>
+        <h3> 🔰  جوانب و معايير التقييم و مؤشرات الأداء    </h3>
      {% if session.get('user_id') == id and  Evaluation_aspects == None  %}
          <a class="button button-link" href="{{url_for('cirteria_data')}}"> أضغط للتقييم</a>
         {% elif session.get('role') != 'user' and  Evaluation_aspects.evaluation_sum == None %}
@@ -98,7 +98,7 @@
                 <tr>
                     <th>مجموع درجات التقييم الذاتي </th>
                     <th>الحد الاعلي للدرجة</th>
-                    <th>تقييم رئيس القسم النشاط العلمي </th>
+                    <th>تقييم رئيس القسم للنشاط العلمي </th>
                 </tr>
             </thead>
             <tbody>
@@ -120,7 +120,44 @@
             </tbody>
         </table>
 </div>
+
+<div class="table-content" >
+    <div class="section-head">
+        <h3> 🔰  الأخلاقيات والمسؤولية المهنية   </h3>
+     {% if session.get('user_id') == id and  ethics_responsibility == None  %}
+         <a class="button button-link" href="{{url_for('ethical_data')}}"> أضغط للتقييم</a>
+        {% elif session.get('role') != 'user' and  ethics_responsibility.evaluation_sum == None %}
+         <a class="button button-link" href="{{url_for('update_ethical',id=id)}}"> أضغط للتقييم</a>
+         {% endif %}
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>مجموع درجات التقييم الذاتي </th>
+                    <th>الحد الاعلي للدرجة</th>
+                    <th>تقييم رئيس القسم للنشاط العلمي </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+
+                   {% if ethics_responsibility.aspects_sum  %}
+                   <td>{{ethics_responsibility.aspects_sum }}</td>
+                   {% else %}
+                    <td> لم يتم التقييم</td>
+                       {% endif %}
+                    <td>{{ 15 }}</td>
+
+                    {% if ethics_responsibility.evaluation_sum  %}
+                  <td>{{ ethics_responsibility.evaluation_sum }}</td>
+                   {% else %}
+                     <td> لم يتم التقييم</td>
+                       {% endif %}
+                </tr>
+            </tbody>
+        </table>
 </div>
+
 
 <div class="table-content" >
             <h3 > 🔰 الدرجة النهائية لتقييم عضو هيئة التدريس   </h3>
@@ -166,6 +203,8 @@
                     <th>عدد الطلاب</th>
                     <th>إجمالي العبء التدريسي</th>
                     <th>الساعات المعتمدة</th>
+                    <th  style="font-size: 12px;">استخدم منظومة D2L</th>
+                    <th style="font-size: 12px;">استخدم منظومة QuestionMark</th>
                 </tr>
             </thead>
              {% if semseters %}
@@ -178,6 +217,8 @@
                     <td>{{ item['num_students'] }}</td>
                     <td>{{ item['teaching_load'] }}</td>
                     <td>{{ item['credit_hours'] }}</td>
+                    <td>{{ item['D2L'] }}</td>
+                    <td>{{ item['QuestionMark'] }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -232,7 +273,7 @@
         <table>
             <thead>
                 <tr>
-                    <th> عنوان النتاج العلمي </th>
+                    <th> عنوان الانتاج العلمي </th>
                     <th> النوع </th>
                     <th> اسماء المؤلفين </th>
                     <th> جهة النشر</th>
