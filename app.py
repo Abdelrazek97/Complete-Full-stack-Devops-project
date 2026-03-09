@@ -48,6 +48,14 @@ class MySQLCursor:
             params = ()
         self._cursor.execute(adapt_sql_query(query), params)
         return self
+    
+    def executemany(self, query, params=None):
+        if params is None:
+            params = ()
+        self._cursor.executemany(adapt_sql_query(query), params)
+        return self
+    
+    
 
     def fetchone(self):
         return wrap_row(self._cursor.fetchone())
@@ -71,6 +79,12 @@ class MySQLConnection:
         cursor = self.cursor()
         cursor.execute(query, params)
         return cursor
+    
+    def executemany(self, query, params=None):
+        cursor = self.cursor()
+        cursor.executemany(query, params)
+        return cursor
+
 
     def cursor(self):
         return MySQLCursor(self._conn.cursor())
@@ -157,6 +171,42 @@ def login():
             flash('Invalid username or password', 'danger')
     
     return render_template('login.html')
+
+@app.route('/temp_data')
+def temp_data():
+    users_data=[
+        ('ahmed1', generate_password_hash('1234'), 'Medical Education', 'head', 'ahmed mohamed'),
+        ('mohamed1', generate_password_hash('1234'), 'Medical Education', 'user', 'mohamed mohamed'),
+        ('sara1', generate_password_hash('1234'), 'Medical Education', 'user', 'sara mohamed'),
+        ('laila1', generate_password_hash('1234'), 'Medical Education', 'user', 'laila mohamed'),
+        ('yara1', generate_password_hash('1234'), 'Research', 'head', 'yara mohamed'),
+        ('omar1', generate_password_hash('1234'), 'Research', 'user', 'omar mohamed'),
+        ('nour1', generate_password_hash('1234'), 'Research', 'user', 'nour mohamed'),
+        ('salma1', generate_password_hash('1234'), 'Histology', 'head', 'salma mohamed'),
+        ('khaled1', generate_password_hash('1234'), 'Histology', 'user', 'khaled mohamed'),
+        ('dina1', generate_password_hash('1234'), 'Histology', 'user', 'dina mohamed'),
+        ('ahmed2', generate_password_hash('1234'), 'Biochemistry', 'head', 'ahmed mohamed'),
+        ('mohamed2', generate_password_hash('1234'), 'Biochemistry', 'user', 'mohamed mohamed'),
+        ('sara2', generate_password_hash('1234'), 'Anatomy', 'head', 'sara mohamed'),
+        ('laila2', generate_password_hash('1234'), 'Anatomy', 'user', 'laila mohamed'),
+        ('yara2', generate_password_hash('1234'), 'Anatomy', 'user', 'yara mohamed'),
+        ('omar2', generate_password_hash('1234'), 'Biochemistry', 'user', 'omar mohamed'),
+        ('nour2', generate_password_hash('1234'), 'Medicine', 'head', 'nour mohamed'),
+        ('salma2', generate_password_hash('1234'), 'Medicine', 'user', 'salma mohamed'),
+        ('khaled2', generate_password_hash('1234'), 'Medicine', 'user', 'khaled mohamed'),
+        ('dina2', generate_password_hash('1234'), 'Biochemistry', 'user', 'dina mohamed')
+    ]
+    conn = get_db_connection()
+    
+
+    conn.executemany(
+        'INSERT INTO users (username, password, department,role, full_name) VALUES (?, ?, ?, ?, ?)',
+        users_data
+    )
+    conn.commit()
+    conn.close()
+    return render_template('page-404.html',errmsg='data added successfully! Please log in.')
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
